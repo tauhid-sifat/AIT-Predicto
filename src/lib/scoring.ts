@@ -3,20 +3,31 @@ import { logEvent, logError } from '@/lib/sync-logger'
 import { setState, logToDb } from '@/lib/system-state'
 
 export function calculatePoints(
-  predictedScoreA: number,
-  predictedScoreB: number,
+  predictedScoreA: number | null,
+  predictedScoreB: number | null,
   actualScoreA: number,
   actualScoreB: number
 ): number {
-  const exactScore = predictedScoreA === actualScoreA && predictedScoreB === actualScoreB
-  if (exactScore) return 5
+  const predictedOutcomeA = predictedScoreA ?? -1
+  const predictedOutcomeB = predictedScoreB ?? -1
 
-  const predictedOutcome =
-    predictedScoreA > predictedScoreB ? 'a' : predictedScoreA < predictedScoreB ? 'b' : 'draw'
-  const actualOutcome =
+  const predictedWinner =
+    predictedOutcomeA > predictedOutcomeB ? 'a' : predictedOutcomeA < predictedOutcomeB ? 'b' : 'draw'
+  const actualWinner =
     actualScoreA > actualScoreB ? 'a' : actualScoreA < actualScoreB ? 'b' : 'draw'
 
-  return predictedOutcome === actualOutcome ? 2 : 0
+  let points = 0
+  if (predictedWinner === actualWinner) points = 3
+
+  const exact =
+    predictedScoreA !== null &&
+    predictedScoreB !== null &&
+    predictedScoreA === actualScoreA &&
+    predictedScoreB === actualScoreB
+
+  if (exact) points += 2
+
+  return points
 }
 
 type ScoreResult = {
@@ -33,7 +44,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
 
   logEvent('scoring_started', { matchId })
 
-  // 1. Verify match exists and is final
   const { data: match } = await supabase
     .from('matches')
     .select('id, status, home_score, away_score')
@@ -57,7 +67,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
     return result
   }
 
-  // 2. Fetch all predictions for this match
   const { data: predictions } = await supabase
     .from('predictions')
     .select('id, user_id, predicted_home_score, predicted_away_score, points')
@@ -70,7 +79,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
 
   result.totalPredictions = predictions.length
 
-  // 3. Check if already fully scored (all predictions have non-null points)
   const allScored = predictions.every((p) => p.points !== null)
   if (allScored) {
     logEvent('scoring_skipped', { matchId, reason: 'already_scored', totalPredictions: predictions.length })
@@ -78,7 +86,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
     return result
   }
 
-  // 4. Score each prediction idempotently
   for (const p of predictions) {
     const newPoints = calculatePoints(
       p.predicted_home_score,
@@ -113,7 +120,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
     errors: result.errors,
   })
 
-  // Track state
   await setState('last_scoring_run_time', new Date().toISOString())
   if (result.errors > 0) {
     await logToDb('scoring_completed_with_errors', {

@@ -31,16 +31,17 @@ CREATE TABLE predictions (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   match_id              BIGINT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-  predicted_home_score  INT NOT NULL CHECK (predicted_home_score >= 0),
-  predicted_away_score  INT NOT NULL CHECK (predicted_away_score >= 0),
+  predicted_home_score  INT CHECK (predicted_home_score >= 0),
+  predicted_away_score  INT CHECK (predicted_away_score >= 0),
   predicted_winner      TEXT NOT NULL CHECK (predicted_winner IN ('home', 'away', 'draw')),
   points                INT NOT NULL DEFAULT 0 CHECK (points >= 0),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
 
   UNIQUE (user_id, match_id),
 
-  -- Ensure predicted_winner matches the scores
+  -- Winner required; scores optional but must be consistent if provided
   CONSTRAINT predicted_winner_consistent CHECK (
+    (predicted_home_score IS NULL AND predicted_away_score IS NULL) OR
     (predicted_home_score > predicted_away_score AND predicted_winner = 'home') OR
     (predicted_home_score < predicted_away_score AND predicted_winner = 'away') OR
     (predicted_home_score = predicted_away_score AND predicted_winner = 'draw')

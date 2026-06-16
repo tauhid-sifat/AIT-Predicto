@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import PredictionForm from './prediction-form'
+import { getFlagUrl, getFlagSrcset } from '@/lib/team-flags'
 
 type Match = {
   id: number
@@ -15,8 +16,8 @@ type Match = {
 
 type Prediction = {
   id?: string
-  predicted_home_score: number
-  predicted_away_score: number
+  predicted_home_score: number | null
+  predicted_away_score: number | null
   predicted_winner?: string
   points?: number
 } | null
@@ -44,6 +45,25 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function TeamName({ name }: { name: string }) {
+  const flag = getFlagUrl(name)
+  const srcset = getFlagSrcset(name)
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {flag && (
+        <img
+          src={flag}
+          srcSet={srcset}
+          alt=""
+          className="w-4 h-3 inline-block rounded-sm object-cover"
+          loading="lazy"
+        />
+      )}
+      <span className="truncate">{name}</span>
+    </span>
+  )
+}
+
 function PredictionSummary({
   prediction,
   match,
@@ -52,14 +72,25 @@ function PredictionSummary({
   match: Match
 }) {
   const points = prediction.points ?? 0
-  const hasResult = match.status === 'finished'
   const isCorrect = points > 0
+  const hasScores =
+    prediction.predicted_home_score !== null && prediction.predicted_away_score !== null
 
-  if (!hasResult) {
+  const winnerLabel =
+    prediction.predicted_winner === 'home'
+      ? match.home_team
+      : prediction.predicted_winner === 'away'
+      ? match.away_team
+      : 'Draw'
+
+  if (match.status !== 'finished') {
     return (
       <div className="mt-2 pt-2 border-t border-gray-100">
         <div className="text-xs text-gray-500 text-center">
-          Your pick: {prediction.predicted_home_score} &ndash; {prediction.predicted_away_score}
+          Your pick: {winnerLabel}
+          {hasScores && (
+            <> &middot; {prediction.predicted_home_score}–{prediction.predicted_away_score}</>
+          )}
         </div>
       </div>
     )
@@ -72,9 +103,10 @@ function PredictionSummary({
       } rounded-b -mx-4 -mb-4 px-4 pb-4`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-gray-500 text-xs">Your prediction:</span>
-        <span className="font-medium tabular-nums">
-          {prediction.predicted_home_score} &ndash; {prediction.predicted_away_score}
+        <span className="text-gray-500 text-xs">Your pick:</span>
+        <span className="font-medium text-xs">
+          {winnerLabel}
+          {hasScores && <> ({prediction.predicted_home_score}–{prediction.predicted_away_score})</>}
         </span>
       </div>
       <div className="flex items-center justify-between mt-1">
@@ -105,10 +137,16 @@ export default function MatchCard({
   const isLive = match.status === 'live'
   const matchDate = new Date(match.kickoff_time)
 
-  const formatTime = (d: Date) =>
-    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-  const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const formatBD = (d: Date) =>
+    d.toLocaleString('en-BD', {
+      timeZone: 'Asia/Dhaka',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
 
   const now = new Date()
   const isPast = matchDate <= now
@@ -123,7 +161,6 @@ export default function MatchCard({
           : 'border-gray-200'
       }`}
     >
-      {/* Top row: status badge */}
       <div className="flex items-center justify-between mb-2">
         <StatusBadge status={match.status} />
         {isHot && !isFinished && (
@@ -133,11 +170,10 @@ export default function MatchCard({
         )}
       </div>
 
-      {/* Teams & Score */}
       <div className="flex items-center gap-3">
         <div className="flex-1 text-right min-w-0">
           <span className="text-sm sm:text-base font-bold text-gray-900 block truncate">
-            {match.home_team}
+            <TeamName name={match.home_team} />
           </span>
         </div>
 
@@ -153,30 +189,30 @@ export default function MatchCard({
 
         <div className="flex-1 text-left min-w-0">
           <span className="text-sm sm:text-base font-bold text-gray-900 block truncate">
-            {match.away_team}
+            <TeamName name={match.away_team} />
           </span>
         </div>
       </div>
 
-      {/* Date / Time */}
       {!isFinished && (
         <div className="text-xs text-gray-400 text-center mt-1.5">
           {isLive ? (
             <span className="text-red-500 font-medium">In Progress</span>
           ) : (
-            <>
-              {formatDate(matchDate)} &middot; {formatTime(matchDate)}
-            </>
+            <span title={matchDate.toLocaleString('en-US', { timeZoneName: 'short' })}>
+              {formatBD(matchDate)} BST
+            </span>
           )}
         </div>
       )}
 
-      {/* Prediction Form (upcoming matches) */}
       {!isFinished && !isLive && !isPast && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           {userId ? (
             <PredictionForm
               matchId={match.id}
+              homeTeam={match.home_team}
+              awayTeam={match.away_team}
               currentPrediction={currentPrediction}
               onPredictionSaved={(p) => setCurrentPrediction(p)}
               kickoffTime={match.kickoff_time}
@@ -192,14 +228,10 @@ export default function MatchCard({
         </div>
       )}
 
-      {/* Locked prediction (kickoff passed but not finished) */}
       {!isFinished && !isLive && isPast && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           {currentPrediction ? (
-            <div className="text-xs text-gray-400 text-center">
-              Your pick: {currentPrediction.predicted_home_score} &ndash;{' '}
-              {currentPrediction.predicted_away_score}
-            </div>
+            <PredictionSummary prediction={currentPrediction} match={match} />
           ) : (
             <div className="text-xs text-gray-400 text-center italic">
               No prediction made
@@ -208,7 +240,6 @@ export default function MatchCard({
         </div>
       )}
 
-      {/* Prediction Result (finished matches) */}
       {isFinished && currentPrediction && (
         <PredictionSummary prediction={currentPrediction} match={match} />
       )}
