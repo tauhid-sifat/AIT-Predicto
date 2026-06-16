@@ -72,7 +72,10 @@ export default async function HomePage() {
     }
   }
 
-  const isHot = (m: any) => (countMap.get(m.id) ?? 0) >= hotThreshold
+  const isHot = (m: any) => {
+    const count = countMap.get(m.id) ?? 0
+    return count > 0 && count >= hotThreshold
+  }
 
   return (
     <div className="space-y-8">
