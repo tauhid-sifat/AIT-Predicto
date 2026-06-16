@@ -18,7 +18,7 @@ type Prediction = {
   id?: string
   predicted_home_score: number | null
   predicted_away_score: number | null
-  predicted_winner?: string
+  predicted_winner: string
   points?: number
 } | null
 
