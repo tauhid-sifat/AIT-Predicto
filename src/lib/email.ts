@@ -1,32 +1,28 @@
-import nodemailer from 'nodemailer'
-
-function getTransport() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST ?? 'smtp-relay.brevo.com',
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER ?? 'tauhidur.sifat@gmail.com',
-      pass: process.env.SMTP_PASS,
-    },
-  })
-}
+const BREVO_API = 'https://api.brevo.com/v3/smtp/email'
 
 export async function sendPredictionReminder(
   toEmail: string,
   toName: string,
   unpredictedCount: number
 ): Promise<{ ok: boolean; error?: string }> {
-  if (!process.env.SMTP_PASS) return { ok: false, error: 'SMTP_PASS not set' }
+  const apiKey = process.env.BREVO_API_KEY
+  if (!apiKey) return { ok: false, error: 'BREVO_API_KEY not set' }
 
-  const transport = getTransport()
-
-  try {
-    await transport.sendMail({
-      from: `"${process.env.BREVO_SENDER_NAME ?? 'AIT Predicto'}" <${process.env.BREVO_SENDER_EMAIL ?? 'noreply@aitpredicto.com'}>`,
-      to: `"${toName}" <${toEmail}>`,
+  const res = await fetch(BREVO_API, {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: {
+        email: process.env.BREVO_SENDER_EMAIL ?? 'noreply@aitpredicto.com',
+        name: process.env.BREVO_SENDER_NAME ?? 'AIT Predicto',
+      },
+      to: [{ email: toEmail, name: toName }],
       subject: '\u26BD AIT Predicto \u2014 predictions are waiting',
-      html: `
+      htmlContent: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
           <h2 style="margin:0 0 8px">Hi ${escapeHtml(toName)},</h2>
           <p style="color:#444;line-height:1.5">
@@ -41,13 +37,15 @@ export async function sendPredictionReminder(
           </p>
         </div>
       `,
-    })
+    }),
+  })
 
-    return { ok: true }
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: message }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    return { ok: false, error: `Brevo HTTP ${res.status}: ${body.slice(0, 200)}` }
   }
+
+  return { ok: true }
 }
 
 function escapeHtml(s: string): string {
