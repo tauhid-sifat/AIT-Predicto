@@ -111,6 +111,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Re-score finished matches that weren't already scored in this run
+    const scoredInBatch = new Set(records.filter((r) => r.status === 'finished').map((r) => r.id))
+    const { data: allFinished } = await supabase
+      .from('matches')
+      .select('id, home_score, away_score')
+      .eq('status', 'finished')
+      .not('home_score', 'is', null)
+      .not('away_score', 'is', null)
+
+    for (const m of allFinished ?? []) {
+      if (!scoredInBatch.has(m.id)) {
+        const sr = await scoreMatchPredictions(m.id)
+        if (sr.updated > 0) {
+          syncResult.finished++
+          scoringResults.push(`match ${m.id}: ${sr.totalPredictions} predictions, ${sr.updated} updated`)
+          leaderboardDirty = true
+        }
+      }
+    }
+
     logEvent('match_sync_completed', { synced: syncResult.synced, finished: syncResult.finished, source })
     scoringResults.forEach((line) => console.log(`[sync] ${line}`))
 

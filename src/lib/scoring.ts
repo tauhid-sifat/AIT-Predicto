@@ -79,13 +79,6 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
 
   result.totalPredictions = predictions.length
 
-  const allScored = predictions.every((p) => p.points !== null)
-  if (allScored) {
-    logEvent('scoring_skipped', { matchId, reason: 'already_scored', totalPredictions: predictions.length })
-    result.skipped = predictions.length
-    return result
-  }
-
   for (const p of predictions) {
     const newPoints = calculatePoints(
       p.predicted_home_score,
