@@ -46,6 +46,10 @@ export default async function AdminPage() {
 
   const metrics = { totalUsers, totalPredictions, finishedMatches, pendingMatches }
 
+  const reminderLastRun = state.get('reminder_last_run') ?? null
+  const reminderSummary = state.get('reminder_last_summary')
+  const reminderStatus = reminderSummary ? { ...JSON.parse(reminderSummary), lastRun: reminderLastRun } : null
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -53,7 +57,7 @@ export default async function AdminPage() {
         <span className="text-sm text-gray-500">Signed in as {profile.username}</span>
       </div>
 
-      <AdminPanel state={state} metrics={metrics} />
+      <AdminPanel state={state} metrics={metrics} reminderStatus={reminderStatus} />
 
       <section>
         <h2 className="text-lg font-bold mb-3">Recent Sync Logs</h2>

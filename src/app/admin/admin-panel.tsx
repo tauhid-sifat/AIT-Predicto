@@ -9,9 +9,28 @@ type Metrics = {
   pendingMatches: number
 }
 
-export default function AdminPanel({ state, metrics }: { state: Map<string, string>; metrics: Metrics }) {
+type ReminderStatus = {
+  lastRun: string | null
+  sent: number
+  skipped: number
+  errors: number
+  timestamp: string
+}
+
+export default function AdminPanel({
+  state,
+  metrics,
+  reminderStatus,
+}: {
+  state: Map<string, string>
+  metrics: Metrics
+  reminderStatus: ReminderStatus | null
+}) {
   const [syncing, setSyncing] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+
+  const [reminding, setReminding] = useState(false)
+  const [reminderResult, setReminderResult] = useState<string | null>(null)
 
   const handleSync = async () => {
     setSyncing(true)
@@ -29,9 +48,25 @@ export default function AdminPanel({ state, metrics }: { state: Map<string, stri
     }
   }
 
+  const handleTestReminder = async () => {
+    setReminding(true)
+    setReminderResult(null)
+    try {
+      const res = await fetch('/api/reminders/send', { method: 'POST' })
+      const data = await res.json()
+      setReminderResult(res.ok
+        ? `OK — sent ${data.sent}, skipped ${data.skipped}${data.errors.length ? `, ${data.errors.length} errors` : ''}`
+        : `Error: ${data.error}`)
+    } catch (err: any) {
+      setReminderResult(`Error: ${err.message}`)
+    } finally {
+      setReminding(false)
+    }
+  }
+
   return (
     <>
-      <section className="grid gap-6 md:grid-cols-3">
+      <section className="grid gap-6 md:grid-cols-4">
         <div className="border rounded p-4 text-center">
           <div className="text-2xl font-bold">{metrics.totalUsers ?? '?'}</div>
           <div className="text-xs text-gray-500 mt-1">Total Users</div>
@@ -72,13 +107,37 @@ export default function AdminPanel({ state, metrics }: { state: Map<string, stri
           >
             {syncing ? 'Syncing...' : 'Sync Matches Now'}
           </button>
+          <button
+            onClick={handleTestReminder}
+            disabled={reminding}
+            className="bg-purple-700 hover:bg-purple-600 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm transition-colors ml-2"
+          >
+            {reminding ? 'Sending...' : 'Test Reminder'}
+          </button>
           {result && (
             <p className={`text-sm ${result.startsWith('Error') ? 'text-red-600' : 'text-green-700'}`}>
               {result}
             </p>
           )}
+          {reminderResult && (
+            <p className={`text-sm ${reminderResult.startsWith('Error') ? 'text-red-600' : 'text-green-700'}`}>
+              {reminderResult}
+            </p>
+          )}
         </div>
       </section>
+
+      {reminderStatus && (
+        <section className="border rounded p-4 space-y-2">
+          <h2 className="font-semibold">Last Reminder Run</h2>
+          <dl className="text-sm space-y-1">
+            <HealthRow label="Ran at" value={reminderStatus.lastRun ? new Date(reminderStatus.lastRun).toISOString().slice(0, 19).replace('T', ' ') : 'never'} />
+            <HealthRow label="Sent" value={String(reminderStatus.sent)} />
+            <HealthRow label="Skipped" value={String(reminderStatus.skipped)} />
+            <HealthRow label="Errors" value={String(reminderStatus.errors)} />
+          </dl>
+        </section>
+      )}
     </>
   )
 }

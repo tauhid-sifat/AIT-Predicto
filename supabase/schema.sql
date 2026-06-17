@@ -54,10 +54,12 @@ CREATE INDEX idx_predictions_user_points
 
 -- 3. PROFILES
 CREATE TABLE profiles (
-  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username    TEXT UNIQUE,
-  email       TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  id                        UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username                  TEXT UNIQUE,
+  email                     TEXT,
+  created_at                TIMESTAMPTZ DEFAULT NOW(),
+  email_notifications_enabled BOOLEAN DEFAULT TRUE,
+  last_reminder_sent_at     TIMESTAMPTZ
 );
 
 
