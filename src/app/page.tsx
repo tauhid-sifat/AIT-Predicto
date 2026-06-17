@@ -39,7 +39,7 @@ export default async function HomePage() {
     (countData ?? []).map((c: any) => [c.match_id, Number(c.count)])
   )
   const counts = Array.from(countMap.values()).sort((a, b) => b - a)
-  const hotThreshold = counts.length >= 4 ? counts[Math.floor(counts.length * 0.25)] : 0
+  const hotThreshold = counts.length >= 4 ? counts[Math.floor(counts.length * 0.25)] : Infinity
 
   const live = (matches ?? []).filter((m) => m.status === 'live')
   const upcoming = (matches ?? []).filter(
