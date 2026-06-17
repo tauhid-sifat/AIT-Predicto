@@ -3,7 +3,7 @@ import './globals.css'
 import Header from '@/components/header'
 
 export const metadata: Metadata = {
-  title: 'World Cup Predictor',
+  title: 'AIT Predicto',
   description: 'Predict match scores and compete on the leaderboard',
 }
 

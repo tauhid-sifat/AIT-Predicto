@@ -29,22 +29,22 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-blue-900 text-white shadow-md">
+    <header className="text-white shadow-md" style={{background: 'linear-gradient(80.72deg, #714DFF 0%, #9C83FF 31.28%, #E151FF 95.64%)'}}>
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="font-bold text-lg tracking-tight">
-          World Cup Predictor
+          AIT Predicto
         </Link>
 
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/" className="hover:text-blue-200 transition-colors">
+          <Link href="/" className="hover:text-white/70 transition-colors">
             Matches
           </Link>
-          <Link href="/leaderboard" className="hover:text-blue-200 transition-colors">
+          <Link href="/leaderboard" className="hover:text-white/70 transition-colors">
             Leaderboard
           </Link>
 
           {isAdmin && (
-            <Link href="/admin" className="hover:text-yellow-200 text-yellow-300 transition-colors">
+            <Link href="/admin" className="text-yellow-200 hover:text-yellow-100 transition-colors">
               Admin
             </Link>
           )}
@@ -52,14 +52,14 @@ export default function Header() {
           {user ? (
             <button
               onClick={handleSignOut}
-              className="bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded text-sm transition-colors"
+              className="bg-white text-[#714DFF] hover:bg-purple-50 px-3 py-1.5 rounded text-sm font-medium transition-colors"
             >
               Sign Out
             </button>
           ) : (
             <Link
               href="/login"
-              className="bg-blue-700 hover:bg-blue-600 px-3 py-1.5 rounded text-sm transition-colors"
+              className="bg-white text-[#714DFF] hover:bg-purple-50 px-3 py-1.5 rounded text-sm font-medium transition-colors"
             >
               Sign In
             </Link>
