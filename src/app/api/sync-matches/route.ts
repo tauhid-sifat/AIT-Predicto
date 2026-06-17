@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { scoreMatchPredictions } from '@/lib/scoring'
 import { logEvent, logError } from '@/lib/sync-logger'
 import { getState, setState, incrementCounter, logToDb } from '@/lib/system-state'
-import { syncFromSource, createSource } from '@/lib/data-sources/registry'
+import { syncFromSource, createSource, toDbRecord } from '@/lib/data-sources/registry'
 import type { DataSource } from '@/lib/data-sources/types'
 
 const MIN_SYNC_INTERVAL_MS = 30_000
@@ -70,6 +70,31 @@ export async function POST(request: NextRequest) {
         ignoreDuplicates: false,
       })
       if (error) throw error
+    }
+
+    // Refresh stale live matches that may have finished since last sync
+    const staleCutoff = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
+    const { data: staleMatches } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('status', 'live')
+      .lt('kickoff_time', staleCutoff)
+      .limit(20)
+
+    if (staleMatches?.length) {
+      const espnSource = createSource('espn')
+      for (const sm of staleMatches) {
+        const detail = await espnSource.getMatchDetail(sm.id)
+        if (detail && detail.status === 'finished' && detail.score_a !== null && detail.score_b !== null) {
+          const dbRec = toDbRecord(detail)
+          const { error } = await supabase.from('matches').upsert(dbRec, { onConflict: 'id' })
+          if (error) {
+            logError('stale_refresh_failed', error, { matchId: sm.id })
+            continue
+          }
+          records.push(dbRec)
+        }
+      }
     }
 
     // Score finished matches
