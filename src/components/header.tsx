@@ -9,10 +9,17 @@ export default function Header() {
   const router = useRouter()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user))
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetch('/api/admin/check').then(r => r.json()).then(d => setIsAdmin(d.isAdmin))
+    }
+  }, [user])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -35,6 +42,12 @@ export default function Header() {
           <Link href="/leaderboard" className="hover:text-blue-200 transition-colors">
             Leaderboard
           </Link>
+
+          {isAdmin && (
+            <Link href="/admin" className="hover:text-yellow-200 text-yellow-300 transition-colors">
+              Admin
+            </Link>
+          )}
 
           {user ? (
             <button
