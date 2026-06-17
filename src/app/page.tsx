@@ -77,8 +77,31 @@ export default async function HomePage() {
     return count > 0 && count >= hotThreshold
   }
 
+  let stats = null
+  if (user) {
+    const { data: userStats } = await admin.rpc('get_user_stats', { p_user_id: user.id })
+    stats = userStats?.[0]
+  }
+
   return (
     <div className="space-y-8">
+      {stats && (stats.total_predictions ?? 0) > 0 && (
+        <section className="grid grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-[#714DFF]">{stats.total_predictions}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Predictions Made</div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-green-600">{stats.correct_predictions}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Correct Picks</div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-xl p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats.accuracy_percent}%</div>
+            <div className="text-xs text-gray-500 mt-0.5">Accuracy</div>
+          </div>
+        </section>
+      )}
+
       {/* Section A: Live */}
       {live.length > 0 && (
         <section>

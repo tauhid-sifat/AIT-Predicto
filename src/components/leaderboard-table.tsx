@@ -31,14 +31,26 @@ function RankDisplay({ rank }: { rank: number }) {
   return <span className="text-gray-400 font-medium tabular-nums">{rank}</span>
 }
 
+type RankChange = Record<string, number>
+
+function RankMovement({ change }: { change: number | undefined }) {
+  if (change === undefined || change === 0) return <span className="text-gray-300">&mdash;</span>
+  if (change > 0) return <span className="text-green-600 font-semibold" title={`Up ${change}`}>&#9650; {change}</span>
+  return <span className="text-red-500 font-semibold" title={`Down ${Math.abs(change)}`}>&#9660; {Math.abs(change)}</span>
+}
+
 export default function LeaderboardTable({ userId }: { userId?: string }) {
   const [entries, setEntries] = useState<Entry[]>([])
+  const [rankChanges, setRankChanges] = useState<RankChange>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch('/api/leaderboard')
       .then((r) => r.json())
-      .then((data) => setEntries(data.leaderboard ?? []))
+      .then((data) => {
+        setEntries(data.leaderboard ?? [])
+        setRankChanges(data.rankChanges ?? {})
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -63,6 +75,7 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
           <tr className="border-b border-gray-200 text-gray-400 uppercase text-[11px] tracking-wider font-semibold">
             <th className="py-3 px-2 text-left w-12">#</th>
             <th className="py-3 px-2 text-left">User</th>
+            <th className="py-3 px-2 text-center w-14 hidden sm:table-cell"></th>
             <th className="py-3 px-2 text-right w-14">Pts</th>
             <th className="py-3 px-2 text-right w-14 hidden sm:table-cell">Acc</th>
             <th className="py-3 px-2 text-right w-14 hidden sm:table-cell">Streak</th>
@@ -84,6 +97,9 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
               >
                 <td className="py-3 px-2">
                   <RankDisplay rank={rank} />
+                </td>
+                <td className="py-3 px-2 text-center hidden sm:table-cell">
+                  <RankMovement change={rankChanges[entry.user_id]} />
                 </td>
                 <td className="py-3 px-2">
                   <div className="flex items-center gap-1.5">

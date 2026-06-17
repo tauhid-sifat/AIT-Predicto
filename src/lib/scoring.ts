@@ -129,5 +129,16 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
     })
   }
 
+  // Save leaderboard snapshot for rank change tracking
+  await updateLeaderboardSnapshot()
+
   return result
+}
+
+async function updateLeaderboardSnapshot() {
+  const supabase = createAdminClient()
+  const { data } = await supabase.rpc('get_leaderboard')
+  if (data) {
+    await setState('leaderboard_snapshot', JSON.stringify(data))
+  }
 }

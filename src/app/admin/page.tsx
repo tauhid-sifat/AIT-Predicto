@@ -32,6 +32,20 @@ export default async function AdminPage() {
 
   const state = new Map<string, string>((stateRows ?? []).map(r => [r.key, r.value]))
 
+  const [{ count: totalUsers }, { count: totalPredictions }, { count: finishedMatches }] = await Promise.all([
+    admin.from('profiles').select('*', { count: 'exact', head: true }),
+    admin.from('predictions').select('*', { count: 'exact', head: true }),
+    admin.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'finished'),
+  ])
+
+  const { data: pendingData } = await admin
+    .from('predictions')
+    .select('match_id')
+    .is('points', null)
+  const pendingMatches = new Set((pendingData ?? []).map((p: any) => p.match_id)).size
+
+  const metrics = { totalUsers, totalPredictions, finishedMatches, pendingMatches }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -39,7 +53,7 @@ export default async function AdminPage() {
         <span className="text-sm text-gray-500">Signed in as {profile.username}</span>
       </div>
 
-      <AdminPanel state={state} />
+      <AdminPanel state={state} metrics={metrics} />
 
       <section>
         <h2 className="text-lg font-bold mb-3">Recent Sync Logs</h2>
