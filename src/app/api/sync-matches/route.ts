@@ -9,8 +9,15 @@ import type { DataSource } from '@/lib/data-sources/types'
 
 const MIN_SYNC_INTERVAL_MS = 30_000
 
+function isAuthorized(request: NextRequest): boolean {
+  if (request.headers.get('x-sync-secret') === process.env.SYNC_SECRET) return true
+  const auth = request.headers.get('authorization')
+  if (auth === `Bearer ${process.env.SYNC_SECRET}`) return true
+  return false
+}
+
 export async function POST(request: NextRequest) {
-  if (request.headers.get('x-sync-secret') !== process.env.SYNC_SECRET) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
