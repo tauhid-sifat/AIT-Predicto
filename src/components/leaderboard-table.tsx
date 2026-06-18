@@ -35,12 +35,6 @@ function getMedal(index: number, uniquePoints: number[], entryPoints: number): {
 
 type RankChange = Record<string, number>
 
-function RankMovement({ change }: { change: number | undefined }) {
-  if (change === undefined || change === 0) return <span className="text-gray-300">&mdash;</span>
-  if (change > 0) return <span className="text-green-600 font-semibold" title={`Up ${change}`}>&#9650; {change}</span>
-  return <span className="text-red-500 font-semibold" title={`Down ${Math.abs(change)}`}>&#9660; {Math.abs(change)}</span>
-}
-
 const slideIn = (i: number) => ({
   animation: `slideIn 0.35s ease-out ${i * 0.04}s both`,
 })
@@ -100,7 +94,6 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
             <tr className="border-b border-gray-100 text-gray-400 uppercase text-[11px] tracking-wider font-semibold bg-gray-50/80">
               <th className="py-3 px-3 text-left w-14">#</th>
               <th className="py-3 px-3 text-left">User</th>
-              <th className="py-3 px-3 text-center w-14 hidden sm:table-cell"></th>
               <th className="py-3 px-3 text-right w-16">Pts</th>
               <th className="py-3 px-3 text-right w-16 hidden sm:table-cell">Acc</th>
               <th className="py-3 px-3 text-right w-16 hidden sm:table-cell">Streak</th>
@@ -133,12 +126,18 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
                       <span className="text-gray-400 font-medium tabular-nums ml-1.5">{entry.displayRank}</span>
                     )}
                   </td>
-                  <td className="py-3 px-3 text-center hidden sm:table-cell">
-                    <RankMovement change={rankChanges[entry.user_id]} />
-                  </td>
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-gray-900">{entry.username}</span>
+                      {(() => {
+                        const change = rankChanges[entry.user_id]
+                        if (change === undefined || change === 0) return null
+                        return (
+                          <span className={`text-[11px] font-bold ${change > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {change > 0 ? '\u25B2' : '\u25BC'} {Math.abs(change)}
+                          </span>
+                        )
+                      })()}
                       {isMe && (
                         <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-medium">
                           You
