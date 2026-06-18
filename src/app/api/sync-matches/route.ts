@@ -97,6 +97,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fix any match still marked as live but with scores (finished but sync missed it)
+    const { data: stuckLive } = await supabase
+      .from('matches')
+      .select('id, home_score, away_score')
+      .eq('status', 'live')
+      .not('home_score', 'is', null)
+      .not('away_score', 'is', null)
+      .limit(50)
+
+    if (stuckLive?.length) {
+      const stuckIds = stuckLive.map((m: any) => m.id)
+      const { error: fixErr } = await supabase
+        .from('matches')
+        .update({ status: 'finished' })
+        .in('id', stuckIds)
+      if (!fixErr) {
+        for (const m of stuckLive) {
+          records.push({ id: m.id, home_score: m.home_score, away_score: m.away_score, status: 'finished' } as any)
+        }
+        logEvent('stuck_live_fixed', { count: stuckLive.length })
+      }
+    }
+
     // Score finished matches
     for (const r of records) {
       if (r.status === 'finished' && r.home_score !== null && r.away_score !== null) {

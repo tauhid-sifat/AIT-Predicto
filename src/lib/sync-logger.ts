@@ -7,6 +7,7 @@ type LogEvent =
   | 'scoring_skipped'
   | 'leaderboard_updated'
   | 'consistency_check'
+  | 'stuck_live_fixed'
 
 export function logEvent(event: LogEvent, details?: Record<string, unknown>) {
   const entry = {
