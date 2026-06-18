@@ -13,7 +13,6 @@ type Entry = {
 
 type RankChange = Record<string, number>
 
-const MEDAL_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32']
 const MEDAL_ICONS = ['\u{1F947}', '\u{1F948}', '\u{1F949}']
 const PODIUM_BG = ['from-yellow-200/20', 'from-gray-200/20', 'from-orange-200/20']
 const PODIUM_BORDER = ['border-yellow-300', 'border-gray-300', 'border-orange-300']
@@ -27,23 +26,21 @@ export default function PodiumSection({
 }) {
   if (top3.length === 0) return null
 
-  const order = top3.length === 3 ? [1, 0, 2] : [0, 1, 2]
-  const visible = order.filter((i) => i < top3.length)
+  const displayOrder = top3.length === 3 ? [1, 0, 2] : [0, 1, 2]
 
   return (
     <div className="flex items-end justify-center gap-3 sm:gap-5 mb-8">
-      {visible.map((idx) => {
+      {displayOrder.map((idx, position) => {
+        if (idx >= top3.length) return null
         const entry = top3[idx]
-        const place = idx + 1
-        const isGold = place === 1
+        const isGold = idx === 0
         const change = rankChanges[entry.user_id]
+        const orderClass = position === 0 ? 'order-1' : position === 1 ? 'order-2 scale-110 z-10' : 'order-3'
 
         return (
           <div
             key={entry.user_id}
-            className={`flex flex-col items-center ${
-              isGold ? 'order-2 scale-110 z-10' : idx === 0 ? 'order-1' : 'order-3'
-            }`}
+            className={`flex flex-col items-center ${orderClass}`}
           >
             <div className="text-3xl sm:text-4xl mb-1">{MEDAL_ICONS[idx]}</div>
             <div
@@ -71,9 +68,9 @@ export default function PodiumSection({
               </div>
             </div>
             <div
-              className={`mt-2 text-xs font-medium text-gray-400 ${isGold ? 'text-amber-500' : ''}`}
+              className={`mt-2 text-xs font-medium ${isGold ? 'text-amber-500 font-semibold' : 'text-gray-400'}`}
             >
-              {place === 1 ? '1st Place' : place === 2 ? '2nd Place' : '3rd Place'}
+              {idx === 0 ? '1st Place' : idx === 1 ? '2nd Place' : '3rd Place'}
             </div>
           </div>
         )
