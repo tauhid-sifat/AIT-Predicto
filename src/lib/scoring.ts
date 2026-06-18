@@ -6,15 +6,11 @@ export function calculatePoints(
   predictedScoreA: number | null,
   predictedScoreB: number | null,
   actualScoreA: number,
-  actualScoreB: number
+  actualScoreB: number,
+  predictedWinner?: string
 ): number {
-  const predictedOutcomeA = predictedScoreA ?? -1
-  const predictedOutcomeB = predictedScoreB ?? -1
-
-  const predictedWinner =
-    predictedOutcomeA > predictedOutcomeB ? 'a' : predictedOutcomeA < predictedOutcomeB ? 'b' : 'draw'
   const actualWinner =
-    actualScoreA > actualScoreB ? 'a' : actualScoreA < actualScoreB ? 'b' : 'draw'
+    actualScoreA > actualScoreB ? 'home' : actualScoreA < actualScoreB ? 'away' : 'draw'
 
   let points = 0
   if (predictedWinner === actualWinner) points = 3
@@ -69,7 +65,7 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
 
   const { data: predictions } = await supabase
     .from('predictions')
-    .select('id, user_id, predicted_home_score, predicted_away_score, points')
+    .select('id, user_id, predicted_home_score, predicted_away_score, predicted_winner, points')
     .eq('match_id', matchId)
 
   if (!predictions || predictions.length === 0) {
@@ -84,7 +80,8 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
       p.predicted_home_score,
       p.predicted_away_score,
       match.home_score,
-      match.away_score
+      match.away_score,
+      p.predicted_winner
     )
 
     if (p.points === newPoints) {
