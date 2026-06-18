@@ -124,6 +124,22 @@ export default function AdminPanel({
               {reminderResult}
             </p>
           )}
+          <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100 mt-3">
+            <a
+              href="/api/admin/export?type=leaderboard"
+              download
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded transition-colors"
+            >
+              Export Leaderboard (CSV)
+            </a>
+            <a
+              href="/api/admin/export?type=predictions"
+              download
+              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded transition-colors"
+            >
+              Export Predictions (CSV)
+            </a>
+          </div>
         </div>
       </section>
 

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase-server'
 import LeaderboardTable from '@/components/leaderboard-table'
-import UserProfile from '@/components/user-profile'
+import RecentForm from '@/components/recent-form'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,12 +9,10 @@ export default async function LeaderboardPage() {
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Leaderboard</h1>
       </div>
-
-      {user && <UserProfile userId={user.id} />}
 
       <LeaderboardTable userId={user?.id} />
     </div>

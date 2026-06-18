@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { LeaderboardSkeleton } from './skeleton'
+import PodiumSection from './podium-section'
+import RivalZone from './rival-zone'
+import MatchdayMvp from './matchday-mvp'
+import RecentForm from './recent-form'
 
 type Entry = {
   user_id: string
@@ -16,6 +20,15 @@ type Entry = {
   exact_score_count: number
 }
 
+type RankChange = Record<string, number>
+type FormResult = 'correct' | 'incorrect' | 'pending'
+type MvpData = {
+  user_id: string
+  username: string
+  points_gained: number
+  correct_count: number
+}
+
 function getBadges(e: Entry): string[] {
   const b: string[] = []
   if (e.exact_score_count >= 10) b.push('Perfect Predictor')
@@ -24,16 +37,18 @@ function getBadges(e: Entry): string[] {
 }
 
 const TIER_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32']
+const TIER_BG = ['rgba(255,215,0,0.08)', 'rgba(192,192,192,0.08)', 'rgba(205,127,50,0.08)']
 
-function getMedal(index: number, uniquePoints: number[], entryPoints: number): { icon: string; title: string; color: string } | null {
+function getMedalStyle(entryPoints: number, uniquePoints: number[]) {
   const tier = uniquePoints.indexOf(entryPoints)
   if (tier < 0 || tier > 2) return null
-  const icons = ['&#127942;', '&#129352;', '&#129353;']
-  const titles = ['1st place', '2nd place', '3rd place']
-  return { icon: icons[tier], title: titles[tier], color: TIER_COLORS[tier] }
+  return {
+    icon: ['\u{1F947}', '\u{1F948}', '\u{1F949}'][tier] as string,
+    title: ['1st place', '2nd place', '3rd place'][tier] as string,
+    color: TIER_COLORS[tier],
+    bg: TIER_BG[tier],
+  }
 }
-
-type RankChange = Record<string, number>
 
 const slideIn = (i: number) => ({
   animation: `slideIn 0.35s ease-out ${i * 0.04}s both`,
@@ -42,19 +57,23 @@ const slideIn = (i: number) => ({
 export default function LeaderboardTable({ userId }: { userId?: string }) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [rankChanges, setRankChanges] = useState<RankChange>({})
+  const [recentForm, setRecentForm] = useState<FormResult[]>([])
+  const [mvp, setMvp] = useState<MvpData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/leaderboard')
+    const params = userId ? `?user_id=${userId}` : ''
+    fetch(`/api/leaderboard${params}`)
       .then((r) => r.json())
       .then((data) => {
         setEntries(data.leaderboard ?? [])
         setRankChanges(data.rankChanges ?? {})
+        setRecentForm(data.recentForm ?? [])
+        setMvp(data.mvp ?? null)
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [userId])
 
-  // Compute proper tied ranks (DB uses ROW_NUMBER, we fix ties client-side)
   const withRank = (() => {
     let rank = 0
     let prev: number | null = null
@@ -64,16 +83,20 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
       return { ...e, displayRank: rank }
     })
   })()
-  const uniquePoints = Array.from(new Set(entries.map((e) => e.total_points))).sort((a, b) => b - a)
+  const uniquePoints = Array.from(new Set(entries.map((e) => e.total_points))).sort(
+    (a, b) => b - a
+  )
+  const top3 = withRank.filter((e) => e.displayRank <= 3)
+  const currentUserData = userId
+    ? withRank.find((e) => e.user_id === userId) ?? null
+    : null
 
-  if (loading) {
-    return <LeaderboardSkeleton />
-  }
+  if (loading) return <LeaderboardSkeleton />
 
   if (entries.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-4xl mb-3">&#x1F3C6;</div>
+        <div className="text-4xl mb-3">{'\u{1F3C6}'}</div>
         <p className="text-gray-500 font-medium">No predictions yet</p>
         <p className="text-gray-400 text-sm mt-1">Be the first to predict a match!</p>
       </div>
@@ -87,128 +110,149 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes glow {
+          0%, 100% { box-shadow: 0 0 4px rgba(59,130,246,0.15); }
+          50% { box-shadow: 0 0 12px rgba(59,130,246,0.3); }
+        }
+        .rank-badge-gold { background: linear-gradient(135deg, #FFD700, #FFA500); }
+        .rank-badge-silver { background: linear-gradient(135deg, #E8E8E8, #B0B0B0); }
+        .rank-badge-bronze { background: linear-gradient(135deg, #FFB07C, #CD7F32); }
       `}</style>
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-gray-400 uppercase text-[11px] tracking-wider font-semibold bg-gray-50/80">
-              <th className="py-3 px-3 text-left w-14">#</th>
-              <th className="py-3 px-3 text-left">User</th>
-              <th className="py-3 px-3 text-right w-16">Pts</th>
-              <th className="py-3 px-3 text-right w-16 hidden sm:table-cell">Acc</th>
-              <th className="py-3 px-3 text-right w-16 hidden sm:table-cell">Streak</th>
-            </tr>
-          </thead>
-          <tbody>
-            {withRank.map((entry, idx) => {
-              const isMe = entry.user_id === userId
-              const badges = getBadges(entry)
-              const medal = getMedal(idx, uniquePoints, entry.total_points)
 
-              return (
-                <tr
-                  key={entry.user_id}
-                  style={slideIn(idx)}
-                  className={`border-b border-gray-100 transition-all duration-200 ${
-                    isMe
-                      ? 'bg-gradient-to-r from-blue-50/80 to-white'
-                      : medal
-                      ? 'bg-gradient-to-r from-yellow-50/40 to-white'
-                      : 'hover:bg-gray-50/60'
-                  }`}
-                >
-                  <td className="py-3 px-3">
-                    {medal ? (
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full" style={{ backgroundColor: medal.color + '25' }}>
-                        <span className="text-lg leading-none" dangerouslySetInnerHTML={{ __html: medal.icon }} title={medal.title} />
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 font-medium tabular-nums ml-1.5">{entry.displayRank}</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-gray-900">{entry.username}</span>
-                      {(() => {
-                        const change = rankChanges[entry.user_id]
-                        if (change === undefined || change === 0) return null
-                        return (
-                          <span className={`text-[11px] font-bold ${change > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {change > 0 ? '\u25B2' : '\u25BC'} {Math.abs(change)}
-                          </span>
-                        )
-                      })()}
-                      {isMe && (
-                        <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-medium">
-                          You
-                        </span>
-                      )}
+      {mvp && (
+        <div className="mb-6">
+          <MatchdayMvp mvp={mvp} />
+        </div>
+      )}
+
+      <PodiumSection top3={top3} rankChanges={rankChanges} />
+
+      {currentUserData && (
+        <div className="mb-6">
+          <RivalZone currentUser={currentUserData} entries={withRank} />
+        </div>
+      )}
+
+      <div className="space-y-2.5">
+        {withRank.map((entry, idx) => {
+          const isMe = entry.user_id === userId
+          const badges = getBadges(entry)
+          const medal = getMedalStyle(entry.total_points, uniquePoints)
+          const change = rankChanges[entry.user_id]
+
+          return (
+            <div
+              key={entry.user_id}
+              style={slideIn(idx)}
+              className={`relative rounded-xl border px-4 py-3.5 transition-all duration-200 ${
+                isMe
+                  ? 'border-blue-200 bg-gradient-to-r from-blue-50/90 to-white shadow-sm animate-[glow_2s_ease-in-out_infinite]'
+                  : medal
+                  ? `border-gray-100 bg-gradient-to-r ${medal.color}08 to-white shadow-sm`
+                  : 'border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {/* Rank badge */}
+                <div className="shrink-0 w-9 h-9 flex items-center justify-center">
+                  {medal ? (
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-lg"
+                      style={{ backgroundColor: medal.bg }}
+                      title={medal.title}
+                    >
+                      {medal.icon}
                     </div>
-                    {badges.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-0.5">
-                        {badges.map((b) => (
-                          <span
-                            key={b}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 font-medium leading-none border border-purple-200/50"
-                          >
-                            {b === 'Perfect Predictor' ? '\u{1F3C6}' : '\u{1F525}'} {b}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 text-right">
-                    <span className={`font-extrabold tabular-nums text-lg ${medal ? 'text-gray-900' : 'text-gray-700'}`}
-                      style={medal ? { color: medal.color, textShadow: medal ? `0 0 12px ${medal.color}40` : undefined } : {}}>
-                      {entry.total_points}
+                  ) : (
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold tabular-nums ${
+                        entry.displayRank <= 3
+                          ? 'text-white'
+                          : entry.displayRank <= 10
+                          ? 'bg-gray-100 text-gray-600'
+                          : 'bg-gray-50 text-gray-400'
+                      }`}
+                    >
+                      {entry.displayRank}
+                    </div>
+                  )}
+                </div>
+
+                {/* User info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900 text-sm truncate">
+                      {entry.username}
                     </span>
-                  </td>
-                  <td className="py-3 px-3 text-right tabular-nums hidden sm:table-cell">
-                    {entry.total_predictions > 0 ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${
-                              entry.accuracy_percent >= 70
-                                ? 'bg-green-500'
-                                : entry.accuracy_percent >= 40
-                                ? 'bg-yellow-500'
-                                : 'bg-gray-300'
-                            }`}
-                            style={{ width: `${Math.min(entry.accuracy_percent, 100)}%` }}
-                          />
-                        </div>
-                        <span
-                          className={`text-xs font-semibold ${
-                            entry.accuracy_percent >= 70
-                              ? 'text-green-600'
-                              : entry.accuracy_percent >= 40
-                              ? 'text-yellow-600'
-                              : 'text-gray-400'
-                          }`}
-                        >
-                          {entry.accuracy_percent}%
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-300">&mdash;</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-3 text-right tabular-nums hidden sm:table-cell">
-                    {entry.current_streak > 0 ? (
-                      <span className="inline-flex items-center gap-1 font-semibold text-orange-600">
-                        <span className="text-xs">{'\u{1F525}'}</span>
-                        {entry.current_streak}
+                    {isMe && (
+                      <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                        You
                       </span>
-                    ) : (
-                      <span className="text-gray-300">&mdash;</span>
                     )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    {change !== undefined && change !== 0 && (
+                      <span
+                        className={`text-[11px] font-bold shrink-0 ${
+                          change > 0 ? 'text-green-600' : 'text-red-500'
+                        }`}
+                      >
+                        {change > 0 ? '\u25B2' : '\u25BC'} {Math.abs(change)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="text-xs text-gray-400">
+                      {entry.total_predictions} pred
+                    </span>
+                    <span className="text-xs text-gray-300">|</span>
+                    <span
+                      className={`text-xs font-medium ${
+                        entry.accuracy_percent >= 70
+                          ? 'text-green-600'
+                          : entry.accuracy_percent >= 40
+                          ? 'text-yellow-600'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {entry.accuracy_percent}% acc
+                    </span>
+                    {entry.current_streak > 0 && (
+                      <>
+                        <span className="text-xs text-gray-300">|</span>
+                        <span className="text-xs font-medium text-orange-600">
+                          {'\u{1F525}'} {entry.current_streak}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {badges.map((b) => (
+                        <span
+                          key={b}
+                          className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 font-medium border border-purple-200/50"
+                        >
+                          {b === 'Perfect Predictor' ? '\u{1F3C6}' : '\u{1F525}'} {b}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Points */}
+                <div className="shrink-0 text-right">
+                  <div
+                    className={`text-xl font-extrabold tabular-nums ${
+                      medal ? '' : 'text-gray-800'
+                    }`}
+                    style={medal ? { color: medal.color } : {}}
+                  >
+                    {entry.total_points}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </>
   )
