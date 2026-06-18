@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase-server'
 import LeaderboardTable from '@/components/leaderboard-table'
-import RecentForm from '@/components/recent-form'
 
 export const dynamic = 'force-dynamic'
 

@@ -226,6 +226,11 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
                       ))}
                     </div>
                   )}
+                  {isMe && recentForm.length > 0 && (
+                    <div className="mt-1.5">
+                      <RecentForm results={recentForm} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Points */}

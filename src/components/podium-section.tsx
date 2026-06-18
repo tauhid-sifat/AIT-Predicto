@@ -57,18 +57,14 @@ export default function PodiumSection({
               <div className={`${ptsSize} font-extrabold text-gray-900 tabular-nums`}>
                 {entry.total_points}
               </div>
-              <div className={`${nameSize} font-semibold text-gray-800 mt-0.5 truncate max-w-[120px]`}>
-                {entry.username}
+              <div className={`${nameSize} font-semibold text-gray-800 mt-0.5 truncate max-w-[120px] flex items-center justify-center gap-1`}>
+                <span className="truncate">{entry.username}</span>
+                {change !== undefined && change !== 0 && (
+                  <span className={`text-[10px] font-bold shrink-0 ${change > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {change > 0 ? '\u25B2' : '\u25BC'}{Math.abs(change)}
+                  </span>
+                )}
               </div>
-              {change !== undefined && change !== 0 && (
-                <div
-                  className={`text-[11px] font-bold mt-0.5 ${
-                    change > 0 ? 'text-green-600' : 'text-red-500'
-                  }`}
-                >
-                  {change > 0 ? '\u25B2' : '\u25BC'} {Math.abs(change)}
-                </div>
-              )}
               <div className="text-xs text-gray-400 mt-1">
                 {entry.accuracy_percent}% acc
               </div>
