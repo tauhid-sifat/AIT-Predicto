@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { LeaderboardSkeleton } from './skeleton'
 import PodiumSection from './podium-section'
-import RivalZone from './rival-zone'
 import MatchdayMvp from './matchday-mvp'
 import RecentForm from './recent-form'
 
@@ -87,9 +86,6 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
     (a, b) => b - a
   )
   const top3 = withRank.filter((e) => e.displayRank <= 3)
-  const currentUserData = userId
-    ? withRank.find((e) => e.user_id === userId) ?? null
-    : null
 
   if (loading) return <LeaderboardSkeleton />
 
@@ -126,12 +122,6 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
       )}
 
       <PodiumSection top3={top3} rankChanges={rankChanges} />
-
-      {currentUserData && (
-        <div className="mb-6">
-          <RivalZone currentUser={currentUserData} entries={withRank} />
-        </div>
-      )}
 
       <div className="space-y-2.5">
         {withRank.map((entry, idx) => {
