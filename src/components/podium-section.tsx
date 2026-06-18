@@ -35,23 +35,29 @@ export default function PodiumSection({
         const entry = top3[idx]
         const isGold = idx === 0
         const change = rankChanges[entry.user_id]
-        const orderClass = position === 0 ? 'order-1' : position === 1 ? 'order-2 scale-110 z-10' : 'order-3'
+        const orderClass = position === 0 ? 'order-1' : position === 1 ? 'order-2 z-10' : 'order-3'
+        const cardW = isGold ? 'min-w-[140px] sm:min-w-[170px]' : 'min-w-[110px] sm:min-w-[130px]'
+        const cardP = isGold ? 'p-5 sm:p-7' : 'p-3.5 sm:p-4'
+        const ptsSize = isGold ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'
+        const nameSize = isGold ? 'text-sm sm:text-base' : 'text-xs sm:text-sm'
+        const iconSize = isGold ? 'text-3xl sm:text-[2.5rem]' : 'text-2xl sm:text-3xl'
+        const medalIcon = isGold ? 'mb-0.5' : 'mb-0'
 
         return (
           <div
             key={entry.user_id}
             className={`flex flex-col items-center ${orderClass}`}
           >
-            <div className="text-3xl sm:text-4xl mb-1">{MEDAL_ICONS[idx]}</div>
+            <div className={`${iconSize} ${medalIcon}`}>{MEDAL_ICONS[idx]}</div>
             <div
-              className={`relative rounded-2xl border-2 ${PODIUM_BORDER[idx]} bg-gradient-to-b ${PODIUM_BG[idx]} to-white p-4 sm:p-5 text-center min-w-[120px] sm:min-w-[140px] shadow-md ${
-                isGold ? 'shadow-yellow-200/50' : ''
+              className={`relative rounded-2xl border-2 ${PODIUM_BORDER[idx]} bg-gradient-to-b ${PODIUM_BG[idx]} to-white ${cardP} text-center ${cardW} shadow-md ${
+                isGold ? 'shadow-yellow-300/40' : 'shadow-sm'
               }`}
             >
-              <div className="text-lg sm:text-xl font-extrabold text-gray-900 tabular-nums">
+              <div className={`${ptsSize} font-extrabold text-gray-900 tabular-nums`}>
                 {entry.total_points}
               </div>
-              <div className="text-sm font-semibold text-gray-800 mt-0.5 truncate max-w-[100px]">
+              <div className={`${nameSize} font-semibold text-gray-800 mt-0.5 truncate max-w-[120px]`}>
                 {entry.username}
               </div>
               {change !== undefined && change !== 0 && (
