@@ -71,8 +71,8 @@ function PredictionSummary({
   prediction: NonNullable<Prediction>
   match: Match
 }) {
-  const points = prediction.points ?? 0
-  const isCorrect = points > 0
+  const isScored = prediction.points !== null && prediction.points !== undefined
+  const isCorrect = isScored && prediction.points! > 0
   const hasScores =
     prediction.predicted_home_score !== null && prediction.predicted_away_score !== null
 
@@ -99,7 +99,11 @@ function PredictionSummary({
   return (
     <div
       className={`mt-2 pt-2 border-t text-sm ${
-        isCorrect ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'
+        !isScored
+          ? 'border-gray-200 bg-gray-50/50'
+          : isCorrect
+          ? 'border-green-200 bg-green-50/50'
+          : 'border-red-200 bg-red-50/50'
       } rounded-b -mx-4 -mb-4 px-4 pb-4`}
     >
       <div className="flex items-center justify-between">
@@ -111,10 +115,10 @@ function PredictionSummary({
       </div>
       <div className="flex items-center justify-between mt-1">
         <span className="text-xs text-gray-500">
-          {isCorrect ? 'Correct!' : 'Incorrect'}
+          {!isScored ? 'Scoring...' : isCorrect ? 'Correct!' : 'Incorrect'}
         </span>
-        <span className={`font-bold ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
-          {isCorrect ? `+${points}` : '0'} pts
+        <span className={`font-bold ${!isScored ? 'text-gray-400' : isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+          {!isScored ? 'Pending' : isCorrect ? `+${prediction.points}` : '0'} pts
         </span>
       </div>
     </div>
@@ -156,7 +160,7 @@ export default function MatchCard({
       className={`bg-white rounded-lg shadow-sm border p-4 transition-shadow hover:shadow-md ${
         isLive
           ? 'border-red-300 ring-1 ring-red-200'
-          : isFinished && currentPrediction && (currentPrediction.points ?? 0) > 0
+          : isFinished && currentPrediction && currentPrediction.points != null && currentPrediction.points > 0
           ? 'border-green-200'
           : 'border-gray-200'
       }`}

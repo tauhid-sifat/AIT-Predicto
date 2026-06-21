@@ -84,7 +84,7 @@ export async function scoreMatchPredictions(matchId: number): Promise<ScoreResul
       p.predicted_winner
     )
 
-    if (p.points === newPoints) {
+    if (p.points != null && p.points === newPoints) {
       result.skipped++
       continue
     }

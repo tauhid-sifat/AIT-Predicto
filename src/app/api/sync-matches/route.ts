@@ -146,9 +146,35 @@ export async function POST(request: NextRequest) {
     for (const m of allFinished ?? []) {
       if (!scoredInBatch.has(m.id)) {
         const sr = await scoreMatchPredictions(m.id)
-        if (sr.updated > 0) {
+        if (sr.updated > 0 || sr.skipped < sr.totalPredictions) {
           syncResult.finished++
           scoringResults.push(`match ${m.id}: ${sr.totalPredictions} predictions, ${sr.updated} updated`)
+          leaderboardDirty = true
+        }
+      }
+    }
+
+    // Catch any finished matches with null points (unscored predictions)
+    const { data: unscoredMatches } = await supabase
+      .from('predictions')
+      .select('match_id')
+      .is('points', null)
+    if (unscoredMatches && unscoredMatches.length > 0) {
+      const unscoredIds = [...new Set(unscoredMatches.map((p: any) => p.match_id))]
+      const { data: unscoredMatchData } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('status', 'finished')
+        .in('id', unscoredIds)
+        .not('home_score', 'is', null)
+        .not('away_score', 'is', null)
+        .limit(50)
+
+      for (const um of unscoredMatchData ?? []) {
+        const sr = await scoreMatchPredictions(um.id)
+        if (sr.updated > 0) {
+          syncResult.finished++
+          scoringResults.push(`unscored match ${um.id}: ${sr.totalPredictions} predictions, ${sr.updated} updated`)
           leaderboardDirty = true
         }
       }

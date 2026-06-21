@@ -34,7 +34,7 @@ CREATE TABLE predictions (
   predicted_home_score  INT CHECK (predicted_home_score >= 0),
   predicted_away_score  INT CHECK (predicted_away_score >= 0),
   predicted_winner      TEXT NOT NULL CHECK (predicted_winner IN ('home', 'away', 'draw')),
-  points                INT NOT NULL DEFAULT 0 CHECK (points >= 0),
+  points                INT DEFAULT NULL CHECK (points IS NULL OR points >= 0),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
 
   UNIQUE (user_id, match_id),
