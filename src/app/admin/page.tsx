@@ -32,11 +32,16 @@ export default async function AdminPage() {
 
   const state = new Map<string, string>((stateRows ?? []).map(r => [r.key, r.value]))
 
-  const [{ count: totalUsers }, { count: totalPredictions }, { count: finishedMatches }] = await Promise.all([
-    admin.from('profiles').select('*', { count: 'exact', head: true }),
-    admin.from('predictions').select('*', { count: 'exact', head: true }),
-    admin.from('matches').select('*', { count: 'exact', head: true }).eq('status', 'finished'),
-  ])
+  const { count: totalUsers } = await admin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+  const { count: totalPredictions } = await admin
+    .from('predictions')
+    .select('*', { count: 'exact', head: true })
+  const { count: finishedMatches } = await admin
+    .from('matches')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'finished')
 
   const { data: pendingData } = await admin
     .from('predictions')

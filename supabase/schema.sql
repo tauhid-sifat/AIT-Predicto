@@ -216,14 +216,20 @@ STABLE
 AS $$
 DECLARE
   rec RECORD;
-  total BIGINT := 0;
+  total_all BIGINT := 0;
+  total_finished BIGINT := 0;
   correct BIGINT := 0;
   exact BIGINT := 0;
   streak BIGINT := 0;
   max_streak BIGINT := 0;
   curr_streak BIGINT := 0;
 BEGIN
-  -- Forward pass: totals + longest streak
+  -- Count ALL predictions for this user (including upcoming matches)
+  SELECT COUNT(*) INTO total_all
+  FROM predictions
+  WHERE user_id = get_user_stats.p_user_id;
+
+  -- Forward pass: finished match stats + longest streak
   FOR rec IN
     SELECT p.points, p.predicted_home_score, p.predicted_away_score,
            m.home_score, m.away_score
@@ -234,7 +240,7 @@ BEGIN
       AND p.points IS NOT NULL
     ORDER BY m.kickoff_time ASC
   LOOP
-    total := total + 1;
+    total_finished := total_finished + 1;
     IF rec.points > 0 THEN
       correct := correct + 1;
       streak := streak + 1;
@@ -267,9 +273,9 @@ BEGIN
   END LOOP;
 
   RETURN QUERY SELECT
-    total,
+    total_all,
     correct,
-    CASE WHEN total > 0 THEN ROUND(correct * 100.0 / total, 1) ELSE 0 END,
+    CASE WHEN total_finished > 0 THEN ROUND(correct * 100.0 / total_finished, 1) ELSE 0 END,
     curr_streak,
     max_streak,
     exact;
