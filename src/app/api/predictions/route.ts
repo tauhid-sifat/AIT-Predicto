@@ -22,21 +22,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { match_id, predicted_home_score, predicted_away_score } = await request.json()
+  const { match_id, predicted_winner, predicted_home_score, predicted_away_score } = await request.json()
 
-  if (match_id === undefined || predicted_home_score === undefined || predicted_away_score === undefined) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  if (match_id === undefined || !predicted_winner) {
+    return NextResponse.json({ error: 'Missing required fields: match_id, predicted_winner' }, { status: 400 })
   }
 
-  const scoreA = parseInt(predicted_home_score, 10)
-  const scoreB = parseInt(predicted_away_score, 10)
-  if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
-    return NextResponse.json({ error: 'Invalid scores' }, { status: 400 })
+  if (!['home', 'away', 'draw'].includes(predicted_winner)) {
+    return NextResponse.json({ error: 'predicted_winner must be home, away, or draw' }, { status: 400 })
   }
 
-  const predicted_winner = scoreA > scoreB ? 'home' : scoreA < scoreB ? 'away' : 'draw'
+  let scoreA: number | null = null
+  let scoreB: number | null = null
+  if (predicted_home_score !== undefined && predicted_home_score !== null &&
+      predicted_away_score !== undefined && predicted_away_score !== null) {
+    scoreA = parseInt(predicted_home_score, 10)
+    scoreB = parseInt(predicted_away_score, 10)
+    if (isNaN(scoreA) || isNaN(scoreB) || scoreA < 0 || scoreB < 0) {
+      return NextResponse.json({ error: 'Invalid scores' }, { status: 400 })
+    }
+    const outcome = scoreA > scoreB ? 'home' : scoreA < scoreB ? 'away' : 'draw'
+    if (outcome !== predicted_winner) {
+      return NextResponse.json({ error: 'Scores must match predicted_winner' }, { status: 400 })
+    }
+  }
 
-  // Verify match exists and hasn't started
   const { data: match } = await supabase
     .from('matches')
     .select('kickoff_time, status')
