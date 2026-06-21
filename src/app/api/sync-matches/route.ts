@@ -65,11 +65,40 @@ export async function POST(request: NextRequest) {
     const BATCH = 50
     for (let i = 0; i < records.length; i += BATCH) {
       const batch = records.slice(i, i + BATCH)
-      const { error } = await supabase.from('matches').upsert(batch, {
+      const batchIds = batch.map((r: any) => r.id)
+
+      // Check existing statuses to avoid reverting finished matches
+      const { data: existing } = await supabase
+        .from('matches')
+        .select('id, status')
+        .in('id', batchIds)
+
+      const finishedIds = new Set((existing ?? []).filter((m: any) => m.status === 'finished').map((m: any) => m.id))
+
+      // Don't try to change status of finished matches — only update scores
+      const safeBatch = batch.map((r: any) => {
+        if (finishedIds.has(r.id)) {
+          return { ...r, status: 'finished' }
+        }
+        return r
+      })
+
+      const { error } = await supabase.from('matches').upsert(safeBatch, {
         onConflict: 'id',
         ignoreDuplicates: false,
       })
-      if (error) throw error
+      if (error) {
+        console.warn(`[sync] Batch upsert error: ${error.message}, falling back to individual upserts`)
+        for (const rec of safeBatch) {
+          const { error: rowErr } = await supabase.from('matches').upsert(rec, {
+            onConflict: 'id',
+            ignoreDuplicates: false,
+          })
+          if (rowErr) {
+            console.warn(`[sync] Skipping match ${rec.id}: ${rowErr.message}`)
+          }
+        }
+      }
     }
 
     // Refresh stale live matches that may have finished since last sync
