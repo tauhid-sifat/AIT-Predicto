@@ -7,13 +7,21 @@ export function calculatePoints(
   predictedScoreB: number | null,
   actualScoreA: number,
   actualScoreB: number,
-  predictedWinner?: string
+  predictedWinner?: string | null
 ): number {
   const actualWinner =
     actualScoreA > actualScoreB ? 'home' : actualScoreA < actualScoreB ? 'away' : 'draw'
 
+  const winner = predictedWinner ?? (
+    predictedScoreA != null && predictedScoreB != null
+      ? predictedScoreA > predictedScoreB ? 'home'
+        : predictedScoreA < predictedScoreB ? 'away'
+        : 'draw'
+      : null
+  )
+
   let points = 0
-  if (predictedWinner === actualWinner) points = 3
+  if (winner === actualWinner) points = 3
 
   const exact =
     predictedScoreA !== null &&
