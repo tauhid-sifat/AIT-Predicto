@@ -20,9 +20,9 @@ type EspnEvent = {
   }>
 }
 
-function mapStatus(state: string): MatchStatus {
-  if (state === 'in') return 'live'
-  if (state === 'post') return 'finished'
+function mapStatus(event: { state: string; completed?: boolean }): MatchStatus {
+  if (event.state === 'in') return 'live'
+  if (event.state === 'post' && event.completed === true) return 'finished'
   return 'scheduled'
 }
 
@@ -38,9 +38,9 @@ function parseEvent(ev: EspnEvent, source: 'espn'): NormalizedMatch | null {
     team_a: teamA.team.name,
     team_b: teamB.team.name,
     kickoff_time: ev.date,
-    status: mapStatus(ev.status.type.state),
-    score_a: teamA.score ? parseInt(teamA.score, 10) : null,
-    score_b: teamB.score ? parseInt(teamB.score, 10) : null,
+    status: mapStatus(ev.status.type),
+    score_a: teamA.score != null ? parseInt(String(teamA.score), 10) : null,
+    score_b: teamB.score != null ? parseInt(String(teamB.score), 10) : null,
     source,
   }
 }
@@ -119,8 +119,10 @@ export class EspnDataSource implements TournamentDataSource {
       d.toISOString().slice(0, 10).replace(/-/g, '')
 
     const from = options?.dateFrom ? new Date(options.dateFrom) : new Date()
+    if (!options?.dateFrom) from.setDate(from.getDate() - 3)
+
     const to = options?.dateTo ? new Date(options.dateTo) : new Date(from)
-    to.setDate(to.getDate() + 7)
+    to.setDate(to.getDate() + 10)
 
     const dates: string[] = []
     const cur = new Date(from)

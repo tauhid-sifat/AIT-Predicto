@@ -149,6 +149,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Re-sync all finished matches from DB via event detail API to catch score corrections
+    const { data: finishedFromDb } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('status', 'finished')
+    const reSyncedIds = new Set<number>()
+    if (finishedFromDb?.length) {
+      const espnSource = createSource('espn')
+      for (const fm of finishedFromDb) {
+        const detail = await espnSource.getMatchDetail(fm.id)
+        if (detail && detail.status === 'finished' && detail.score_a != null && detail.score_b != null) {
+          const dbRec = toDbRecord(detail)
+          const { error } = await supabase.from('matches').upsert(dbRec, { onConflict: 'id' })
+          if (!error) {
+            const existing = records.find((r) => r.id === fm.id)
+            if (existing) {
+              existing.home_score = dbRec.home_score
+              existing.away_score = dbRec.away_score
+            } else {
+              records.push(dbRec)
+            }
+            reSyncedIds.add(fm.id)
+          }
+        }
+      }
+    }
+    if (reSyncedIds.size > 0) {
+      console.log(`[sync] re-synced ${reSyncedIds.size} finished matches`)
+    }
+
     // Score finished matches
     for (const r of records) {
       if (r.status === 'finished' && r.home_score !== null && r.away_score !== null) {
