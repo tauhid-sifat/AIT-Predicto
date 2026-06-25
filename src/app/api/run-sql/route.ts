@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 
-export async function GET() {
-  if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ error: 'Only in dev' }, { status: 403 })
+export async function GET(request: Request) {
+  const secret = request.headers.get('x-sync-secret')
+  if (secret !== process.env.SYNC_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const admin = createAdminClient()
 

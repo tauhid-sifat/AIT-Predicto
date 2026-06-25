@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { unstable_cache } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { getState } from '@/lib/system-state'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 const getCachedLeaderboard = unstable_cache(
   async () => {
@@ -27,6 +28,10 @@ function applyRank(data: any[]) {
 }
 
 export async function GET(request: NextRequest) {
+  const rl = checkRateLimit(request)
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } })
+  }
   const { searchParams } = new URL(request.url)
   const weekly = searchParams.get('weekly') === 'true'
   const userId = searchParams.get('user_id')
