@@ -30,7 +30,7 @@ export default async function AdminPage() {
     .order('created_at', { ascending: false })
     .limit(25)
 
-  const state = new Map<string, string>((stateRows ?? []).map(r => [r.key, r.value]))
+  const state: Record<string, string> = Object.fromEntries((stateRows ?? []).map(r => [r.key, r.value]))
 
   const { count: totalUsers } = await admin
     .from('profiles')
@@ -51,8 +51,8 @@ export default async function AdminPage() {
 
   const metrics = { totalUsers, totalPredictions, finishedMatches, pendingMatches }
 
-  const reminderLastRun = state.get('reminder_last_run') ?? null
-  const reminderSummary = state.get('reminder_last_summary')
+  const reminderLastRun = state['reminder_last_run'] ?? null
+  const reminderSummary = state['reminder_last_summary']
   const reminderStatus = reminderSummary ? { ...JSON.parse(reminderSummary), lastRun: reminderLastRun } : null
 
   return (

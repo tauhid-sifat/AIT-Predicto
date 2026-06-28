@@ -22,7 +22,7 @@ export default function AdminPanel({
   metrics,
   reminderStatus,
 }: {
-  state: Map<string, string>
+  state: Record<string, string>
   metrics: Metrics
   reminderStatus: ReminderStatus | null
 }) {
@@ -91,10 +91,10 @@ export default function AdminPanel({
         <div className="border rounded p-4 space-y-2">
           <h2 className="font-semibold">System Health</h2>
           <dl className="text-sm space-y-1">
-            <HealthRow label="Last sync" value={state.get('last_successful_sync_time') ?? 'never'} />
-            <HealthRow label="Last scoring" value={state.get('last_scoring_run_time') ?? 'never'} />
-            <HealthRow label="Total syncs" value={state.get('total_sync_count') ?? '0'} />
-            <HealthRow label="Failed syncs" value={state.get('failed_sync_count') ?? '0'} />
+            <HealthRow label="Last sync" value={state['last_successful_sync_time'] ?? 'never'} />
+            <HealthRow label="Last scoring" value={state['last_scoring_run_time'] ?? 'never'} />
+            <HealthRow label="Total syncs" value={state['total_sync_count'] ?? '0'} />
+            <HealthRow label="Failed syncs" value={state['failed_sync_count'] ?? '0'} />
           </dl>
         </div>
 
