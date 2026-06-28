@@ -13,9 +13,13 @@ export function createClient() {
           return cookieStore.getAll()
         },
         setAll(cookiesToSet: { name: string; value: string; options: { [key: string]: unknown } }[]) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignored - middleware handles cookie refresh
+          }
         },
       },
     }
