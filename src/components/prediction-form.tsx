@@ -45,6 +45,8 @@ export default function PredictionForm({
   const supabase = createClient()
 
   const isLocked = new Date(kickoffTime) <= new Date()
+  const GROUP_STAGE_END = new Date('2026-06-26T23:59:59Z')
+  const isKnockout = new Date(kickoffTime) > GROUP_STAGE_END
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +64,10 @@ export default function PredictionForm({
       b = parseInt(scoreB, 10)
       if (isNaN(a) || isNaN(b) || a < 0 || b < 0) {
         setError('Enter valid scores (0 or more)')
+        return
+      }
+      if (isKnockout && a === b) {
+        setError('Draws are not possible in knockout matches')
         return
       }
       const predictedOutcome = a > b ? 'home' : a < b ? 'away' : 'draw'
@@ -121,7 +127,7 @@ export default function PredictionForm({
 
   const options = [
     { value: 'home', label: homeTeam },
-    { value: 'draw', label: 'Draw' },
+    ...(!isKnockout ? [{ value: 'draw' as const, label: 'Draw' }] : []),
     { value: 'away', label: awayTeam },
   ]
 
