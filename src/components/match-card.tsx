@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import PredictionForm from './prediction-form'
 import { getFlagUrl, getFlagSrcset } from '@/lib/team-flags'
-import { getKnockoutRound, cleanTeamName } from '@/lib/knockout-rounds'
+import { roundDisplayName, cleanTeamName } from '@/lib/knockout-rounds'
 
 type Match = {
   id: number
@@ -13,6 +13,7 @@ type Match = {
   home_score: number | null
   away_score: number | null
   status: string
+  round?: string | null
 }
 
 type Prediction = {
@@ -142,7 +143,7 @@ export default function MatchCard({
   const isFinished = match.status === 'finished'
   const isLive = match.status === 'live'
   const matchDate = new Date(match.kickoff_time)
-  const round = getKnockoutRound(match.kickoff_time)
+  const round = roundDisplayName(match.round, match.kickoff_time)
 
   const formatBD = (d: Date) =>
     d.toLocaleString('en-BD', {

@@ -25,6 +25,7 @@ export function toDbRecord(m: NormalizedMatch) {
     home_score: m.score_a,
     away_score: m.score_b,
     source: m.source,
+    round: m.round ?? null,
   }
 }
 

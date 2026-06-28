@@ -11,6 +11,7 @@ type Match = {
   home_score: number | null
   away_score: number | null
   status: string
+  round?: string | null
 }
 
 export default function FinishedMatches({

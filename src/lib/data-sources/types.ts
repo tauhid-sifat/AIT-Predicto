@@ -11,6 +11,7 @@ export type NormalizedMatch = {
   score_a: number | null
   score_b: number | null
   source: DataSource
+  round?: string | null
 }
 
 export type SyncOptions = {

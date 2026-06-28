@@ -6,6 +6,9 @@ const EVENT = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/e
 type EspnEvent = {
   id: string
   date: string
+  season?: {
+    slug?: string
+  }
   status: {
     type: {
       state: 'pre' | 'in' | 'post'
@@ -17,6 +20,7 @@ type EspnEvent = {
       team: { name: string }
       score?: string
     }>
+    altGameNote?: string
   }>
 }
 
@@ -33,6 +37,8 @@ function parseEvent(ev: EspnEvent, source: 'espn'): NormalizedMatch | null {
   const [teamA, teamB] = comp.competitors
   if (!teamA || !teamB) return null
 
+  const roundSlug = ev.season?.slug ?? comp.altGameNote ?? null
+
   return {
     external_id: parseInt(ev.id, 10),
     team_a: teamA.team.name,
@@ -42,6 +48,7 @@ function parseEvent(ev: EspnEvent, source: 'espn'): NormalizedMatch | null {
     score_a: teamA.score != null ? parseInt(String(teamA.score), 10) : null,
     score_b: teamB.score != null ? parseInt(String(teamB.score), 10) : null,
     source,
+    round: roundSlug,
   }
 }
 

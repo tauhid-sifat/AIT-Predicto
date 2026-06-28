@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import MatchCard from '@/components/match-card'
 import FinishedMatches from '@/components/finished-matches'
-import { getKnockoutRound, getKnockoutRoundKey, isKnockout, ROUND_ORDER } from '@/lib/knockout-rounds'
+import { roundDisplayName, roundKey, isKnockoutByRound, ROUND_ORDER, ROUND_ICONS } from '@/lib/knockout-rounds'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,14 +21,7 @@ function getDayKey(date: Date): string {
   return date.toDateString()
 }
 
-const ROUND_ICONS: Record<string, string> = {
-  'round-of-32': '\u{1F3B2}',
-  'round-of-16': '\u{1F3E0}',
-  quarterfinals: '\u{1F3AF}',
-  semifinals: '\u{1F3C6}',
-  'third-place': '\u{1F949}',
-  final: '\u{1F3C6}',
-}
+
 
 export default async function HomePage() {
   const supabase = createClient()
@@ -58,13 +51,13 @@ export default async function HomePage() {
   const finished = (matches ?? []).filter((m) => m.status === 'finished')
 
   // Separate knockout from group stage in upcoming
-  const knockoutUpcoming = upcoming.filter((m) => isKnockout(m.kickoff_time))
-  const groupUpcoming = upcoming.filter((m) => !isKnockout(m.kickoff_time))
+  const knockoutUpcoming = upcoming.filter((m) => isKnockoutByRound(m.round, m.kickoff_time))
+  const groupUpcoming = upcoming.filter((m) => !isKnockoutByRound(m.round, m.kickoff_time))
 
   // Group knockout by round
   const roundGroups = new Map<string, typeof knockoutUpcoming>()
   for (const m of knockoutUpcoming) {
-    const key = getKnockoutRoundKey(m.kickoff_time) ?? 'round-of-32'
+    const key = roundKey(m.round, m.kickoff_time) ?? 'round-of-32'
     if (!roundGroups.has(key)) roundGroups.set(key, [])
     roundGroups.get(key)!.push(m)
   }
@@ -154,10 +147,10 @@ export default async function HomePage() {
             <div>
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <span>{ROUND_ICONS[roundKey]}</span>
-                {roundMatches[0]?.status === 'finished' ? 'Results' : getKnockoutRound(roundMatches[0]?.kickoff_time ?? '')}
+                {roundDisplayName(roundMatches[0]?.round, roundMatches[0]?.kickoff_time ?? '')}
               </h2>
               <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">
-                {getKnockoutRound(roundMatches[0]?.kickoff_time ?? '')}
+                {roundDisplayName(roundMatches[0]?.round, roundMatches[0]?.kickoff_time ?? '')}
               </p>
             </div>
           </div>

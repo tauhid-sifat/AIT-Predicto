@@ -19,6 +19,7 @@ CREATE TABLE matches (
   away_score    INT CHECK (away_score >= 0),
   source        TEXT NOT NULL DEFAULT 'api-football'
                 CHECK (source IN ('espn', 'api-football', 'manual')),
+  round         TEXT,
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
