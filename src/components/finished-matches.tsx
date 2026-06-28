@@ -22,34 +22,40 @@ export default function FinishedMatches({
   predictionsMap: Record<number, any>
   userId?: string
 }) {
-  const [open, setOpen] = useState(false)
+  const [showAll, setShowAll] = useState(false)
   if (matches.length === 0) return null
+
+  const latest = matches.slice(-5).reverse()
+  const displayed = showAll ? matches.slice(-10).reverse() : latest
 
   return (
     <section>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setShowAll(!showAll)}
         className="flex items-center justify-between w-full text-left mb-4"
       >
         <h2 className="text-xl font-bold">Recent Results</h2>
         <span className="text-sm text-gray-500 transition-transform duration-200">
-          {open ? '\u25B2' : '\u25BC'}
+          {showAll ? '\u25B2' : '\u25BC'}
         </span>
       </button>
-      {open && (
-        <div className="grid gap-3">
-          {matches.slice(-10).reverse().map((m) => (
-            <MatchCard
-              key={m.id}
-              match={m}
-              prediction={predictionsMap[m.id] ?? null}
-              userId={userId}
-            />
-          ))}
-        </div>
-      )}
-      {!open && (
-        <p className="text-sm text-gray-400">{matches.length} finished match(es)</p>
+      <div className="grid gap-3">
+        {displayed.map((m) => (
+          <MatchCard
+            key={m.id}
+            match={m}
+            prediction={predictionsMap[m.id] ?? null}
+            userId={userId}
+          />
+        ))}
+      </div>
+      {!showAll && matches.length > 5 && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="mt-3 w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2 rounded-lg bg-blue-50/50 hover:bg-blue-100/50 transition-colors"
+        >
+          Show all {matches.length} results
+        </button>
       )}
     </section>
   )

@@ -55,7 +55,7 @@ function TeamName({ name }: { name: string }) {
           src={flag}
           srcSet={srcset}
           alt=""
-          className="w-4 h-3 inline-block rounded-sm object-cover"
+          className="w-6 h-4 inline-block rounded-sm object-cover"
           loading="lazy"
         />
       )}
@@ -183,11 +183,13 @@ export default function MatchCard({
 
         <div className="flex-shrink-0 text-center min-w-[72px]">
           {isFinished || (isLive && match.home_score !== null) ? (
-            <div className="text-xl sm:text-2xl font-extrabold text-gray-900 tabular-nums tracking-tight leading-none">
-              {match.home_score ?? '?'} &ndash; {match.away_score ?? '?'}
+            <div className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums tracking-tight leading-none">
+              <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.home_score ?? '?'}</span>
+              <span className="mx-1.5 text-gray-300 font-bold text-lg align-middle">&ndash;</span>
+              <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.away_score ?? '?'}</span>
             </div>
           ) : (
-            <div className="text-sm font-semibold text-gray-400 uppercase tracking-wider">VS</div>
+            <div className="text-base font-bold text-gray-300 uppercase tracking-widest">VS</div>
           )}
         </div>
 
@@ -222,12 +224,12 @@ export default function MatchCard({
               kickoffTime={match.kickoff_time}
             />
           ) : (
-            <p className="text-sm text-gray-400 text-center">
-              <a href="/login" className="text-blue-600 hover:underline font-medium">
-                Sign in
-              </a>{' '}
-              to predict
-            </p>
+            <a
+              href="/login"
+              className="block text-center text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg py-2.5 transition-colors"
+            >
+              Sign in to predict
+            </a>
           )}
         </div>
       )}

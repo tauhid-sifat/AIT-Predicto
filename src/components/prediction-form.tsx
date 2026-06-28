@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase-client'
+import { getFlagUrl, getFlagSrcset } from '@/lib/team-flags'
 
 type Prediction = {
   id?: string
@@ -125,10 +126,15 @@ export default function PredictionForm({
     )
   }
 
+  const homeFlag = getFlagUrl(homeTeam)
+  const awayFlag = getFlagUrl(awayTeam)
+  const homeSrcset = getFlagSrcset(homeTeam)
+  const awaySrcset = getFlagSrcset(awayTeam)
+
   const options = [
-    { value: 'home', label: homeTeam },
-    ...(!isKnockout ? [{ value: 'draw' as const, label: 'Draw' }] : []),
-    { value: 'away', label: awayTeam },
+    { value: 'home', label: homeTeam, flag: homeFlag, srcset: homeSrcset },
+    ...(!isKnockout ? [{ value: 'draw' as const, label: 'Draw', flag: null as string | null, srcset: undefined }] : []),
+    { value: 'away', label: awayTeam, flag: awayFlag, srcset: awaySrcset },
   ]
 
   return (
@@ -139,7 +145,7 @@ export default function PredictionForm({
             key={opt.value}
             type="button"
             onClick={() => { setWinner(opt.value); setError('') }}
-            className={`text-xs font-medium py-2 px-1 rounded-lg border transition-all ${
+            className={`text-xs font-medium py-2 px-1 rounded-lg border transition-all flex items-center justify-center gap-1 ${
               winner === opt.value
                 ? opt.value === 'draw'
                   ? 'bg-gray-800 text-white border-gray-800'
@@ -147,6 +153,9 @@ export default function PredictionForm({
                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
             }`}
           >
+            {opt.flag && opt.value !== 'draw' && (
+              <img src={opt.flag} srcSet={opt.srcset} alt="" className="w-4 h-3 rounded-sm object-cover" />
+            )}
             {opt.label}
           </button>
         ))}
