@@ -133,7 +133,7 @@ export default function PredictionForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className={`grid ${isKnockout ? 'grid-cols-2 max-w-[200px] mx-auto' : 'grid-cols-3'} gap-1.5`}>
         {options.map((opt) => (
           <button
             key={opt.value}
