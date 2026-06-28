@@ -19,7 +19,7 @@ export default function FinishedMatches({
   userId,
 }: {
   matches: Match[]
-  predictionsMap: Map<number, any>
+  predictionsMap: Record<number, any>
   userId?: string
 }) {
   const [open, setOpen] = useState(false)
@@ -42,7 +42,7 @@ export default function FinishedMatches({
             <MatchCard
               key={m.id}
               match={m}
-              prediction={predictionsMap.get(m.id) ?? null}
+              prediction={predictionsMap[m.id] ?? null}
               userId={userId}
             />
           ))}

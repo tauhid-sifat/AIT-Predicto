@@ -59,7 +59,7 @@ export default async function HomePage() {
     (a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()
   )
 
-  let predictionsMap = new Map<number, any>()
+  let predictionsByMatch: Record<number, any> = {}
   if (user && matches) {
     const { data: predictions } = await supabase
       .from('predictions')
@@ -68,7 +68,7 @@ export default async function HomePage() {
       .in('match_id', matches.map((m) => m.id))
 
     for (const p of predictions ?? []) {
-      predictionsMap.set(p.match_id, p)
+      predictionsByMatch[p.match_id] = p
     }
   }
 
@@ -114,7 +114,7 @@ export default async function HomePage() {
               <MatchCard
                 key={m.id}
                 match={m}
-                prediction={predictionsMap.get(m.id) ?? null}
+                prediction={predictionsByMatch[m.id] ?? null}
                 userId={user?.id}
               />
             ))}
@@ -135,7 +135,7 @@ export default async function HomePage() {
                   <MatchCard
                     key={m.id}
                     match={m}
-                    prediction={predictionsMap.get(m.id) ?? null}
+                    prediction={predictionsByMatch[m.id] ?? null}
                     userId={user?.id}
                     isHot={isHot(m)}
                   />
@@ -157,7 +157,7 @@ export default async function HomePage() {
       {/* Section C: Finished (collapsed by default) */}
       <FinishedMatches
         matches={finished}
-        predictionsMap={predictionsMap}
+        predictionsMap={predictionsByMatch}
         userId={user?.id}
       />
     </div>
