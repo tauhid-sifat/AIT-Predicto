@@ -29,7 +29,7 @@ export default async function HomePage() {
     .from('matches')
     .select('*')
     .order('kickoff_time', { ascending: true })
-    .limit(50)
+    .limit(200)
 
   const now = new Date()
 

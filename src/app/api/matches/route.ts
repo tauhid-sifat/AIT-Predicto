@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     query = query.eq('status', 'live')
   }
 
-  query = query.order('kickoff_time', { ascending: true }).limit(50)
+  query = query.order('kickoff_time', { ascending: true }).limit(200)
 
   const { data: matches, error } = await query
 
