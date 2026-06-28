@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import PredictionForm from './prediction-form'
 import { getFlagUrl, getFlagSrcset } from '@/lib/team-flags'
+import { getKnockoutRound, cleanTeamName } from '@/lib/knockout-rounds'
 
 type Match = {
   id: number
@@ -48,9 +49,10 @@ function StatusBadge({ status }: { status: string }) {
 function TeamName({ name }: { name: string }) {
   const flag = getFlagUrl(name)
   const srcset = getFlagSrcset(name)
+  const cleaned = cleanTeamName(name)
   return (
     <span className="inline-flex items-center gap-1.5">
-      {flag && (
+      {flag && cleaned !== 'TBD' && (
         <img
           src={flag}
           srcSet={srcset}
@@ -59,7 +61,7 @@ function TeamName({ name }: { name: string }) {
           loading="lazy"
         />
       )}
-      <span className="truncate">{name}</span>
+      <span className={`truncate ${cleaned === 'TBD' ? 'text-gray-300 italic' : ''}`}>{cleaned}</span>
     </span>
   )
 }
@@ -140,6 +142,7 @@ export default function MatchCard({
   const isFinished = match.status === 'finished'
   const isLive = match.status === 'live'
   const matchDate = new Date(match.kickoff_time)
+  const round = getKnockoutRound(match.kickoff_time)
 
   const formatBD = (d: Date) =>
     d.toLocaleString('en-BD', {
@@ -157,7 +160,7 @@ export default function MatchCard({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-sm border p-4 transition-shadow hover:shadow-md ${
+      className={`bg-white rounded-xl shadow-sm border p-5 transition-shadow hover:shadow-md ${
         isLive
           ? 'border-red-300 ring-1 ring-red-200'
           : isFinished && currentPrediction && currentPrediction.points != null && currentPrediction.points > 0
@@ -166,7 +169,14 @@ export default function MatchCard({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <StatusBadge status={match.status} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={match.status} />
+          {round && (
+            <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+              {round}
+            </span>
+          )}
+        </div>
         {isHot && !isFinished && (
           <span className="text-[10px] font-semibold text-orange-600 flex items-center gap-0.5">
             <span>&#x1F525;</span> Hot

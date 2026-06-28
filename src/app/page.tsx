@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase-server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import MatchCard from '@/components/match-card'
 import FinishedMatches from '@/components/finished-matches'
+import { getKnockoutRound, getKnockoutRoundKey, isKnockout, ROUND_ORDER } from '@/lib/knockout-rounds'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,15 @@ function sectionLabel(date: Date): string {
 
 function getDayKey(date: Date): string {
   return date.toDateString()
+}
+
+const ROUND_ICONS: Record<string, string> = {
+  'round-of-32': '\u{1F3B2}',
+  'round-of-16': '\u{1F3E0}',
+  quarterfinals: '\u{1F3AF}',
+  semifinals: '\u{1F3C6}',
+  'third-place': '\u{1F949}',
+  final: '\u{1F3C6}',
 }
 
 export default async function HomePage() {
@@ -47,15 +57,29 @@ export default async function HomePage() {
   )
   const finished = (matches ?? []).filter((m) => m.status === 'finished')
 
-  // Group upcoming by day
-  const groups = new Map<string, typeof upcoming>()
-  for (const m of upcoming) {
-    const key = getDayKey(new Date(m.kickoff_time))
-    if (!groups.has(key)) groups.set(key, [])
-    groups.get(key)!.push(m)
-  }
+  // Separate knockout from group stage in upcoming
+  const knockoutUpcoming = upcoming.filter((m) => isKnockout(m.kickoff_time))
+  const groupUpcoming = upcoming.filter((m) => !isKnockout(m.kickoff_time))
 
-  const sortedGroups = Array.from(groups.entries()).sort(
+  // Group knockout by round
+  const roundGroups = new Map<string, typeof knockoutUpcoming>()
+  for (const m of knockoutUpcoming) {
+    const key = getKnockoutRoundKey(m.kickoff_time) ?? 'round-of-32'
+    if (!roundGroups.has(key)) roundGroups.set(key, [])
+    roundGroups.get(key)!.push(m)
+  }
+  const sortedRoundGroups = Array.from(roundGroups.entries()).sort(
+    (a, b) => ROUND_ORDER.indexOf(a[0]) - ROUND_ORDER.indexOf(b[0])
+  )
+
+  // Group group stage by day
+  const dayGroups = new Map<string, typeof groupUpcoming>()
+  for (const m of groupUpcoming) {
+    const key = getDayKey(new Date(m.kickoff_time))
+    if (!dayGroups.has(key)) dayGroups.set(key, [])
+    dayGroups.get(key)!.push(m)
+  }
+  const sortedDayGroups = Array.from(dayGroups.entries()).sort(
     (a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime()
   )
 
@@ -84,7 +108,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {stats && (stats.total_predictions ?? 0) > 0 && (
         <section className="grid grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-purple-50 to-white border border-purple-200 rounded-xl p-4 text-center">
@@ -109,7 +133,7 @@ export default async function HomePage() {
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
             Live
           </h2>
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {live.map((m) => (
               <MatchCard
                 key={m.id}
@@ -122,15 +146,44 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Section B: Upcoming grouped by day */}
-      {sortedGroups.length > 0 && (
+      {/* Section B1: Knockout rounds */}
+      {sortedRoundGroups.map(([roundKey, roundMatches]) => (
+        <section key={roundKey}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span>{ROUND_ICONS[roundKey]}</span>
+                {roundMatches[0]?.status === 'finished' ? 'Results' : getKnockoutRound(roundMatches[0]?.kickoff_time ?? '')}
+              </h2>
+              <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">
+                {getKnockoutRound(roundMatches[0]?.kickoff_time ?? '')}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            {roundMatches.map((m) => (
+              <MatchCard
+                key={m.id}
+                match={m}
+                prediction={predictionsByMatch[m.id] ?? null}
+                userId={user?.id}
+                isHot={isHot(m)}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {/* Section B2: Group stage by day */}
+      {sortedDayGroups.length > 0 && (
         <>
-          {sortedGroups.map(([dayKey, dayMatches]) => (
+          {sortedDayGroups.map(([dayKey, dayMatches]) => (
             <section key={dayKey}>
               <h2 className="text-lg font-bold text-gray-800 mb-3">
                 {sectionLabel(new Date(dayKey))}
               </h2>
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 {dayMatches.map((m) => (
                   <MatchCard
                     key={m.id}
@@ -146,7 +199,7 @@ export default async function HomePage() {
         </>
       )}
 
-      {sortedGroups.length === 0 && live.length === 0 && (
+      {sortedRoundGroups.length === 0 && sortedDayGroups.length === 0 && live.length === 0 && (
         <section className="text-center py-12">
           <div className="text-4xl mb-3">&#x26BD;</div>
           <p className="text-gray-500 font-medium">No upcoming matches</p>
