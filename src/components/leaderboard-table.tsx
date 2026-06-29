@@ -226,7 +226,7 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
                       ))}
                     </div>
                   )}
-                  {userForm.length > 0 && (
+                  {isMe && userForm.length > 0 && (
                     <div className="mt-1.5">
                       <RecentForm results={userForm} />
                     </div>

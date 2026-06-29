@@ -72,13 +72,12 @@ export async function GET(request: NextRequest) {
     stats = userStats?.[0] ?? null
   }
 
-  // Fetch all finished matches + user predictions to build a full heatmap
+  // Fetch heatmap only for the requesting user
   type FormResult = 'exact' | 'correct' | 'incorrect' | null
   const recentFormMap: Record<string, (FormResult)[]> = {}
 
-  if (data.length > 0) {
+  if (userId) {
     const supabase = createAdminClient()
-    const allUserIds = data.map((e: any) => e.user_id)
 
     const { data: allFinishedMatches } = await supabase
       .from('matches')
@@ -89,46 +88,36 @@ export async function GET(request: NextRequest) {
       .order('kickoff_time', { ascending: false })
       .limit(110)
 
-    if (!allFinishedMatches || allFinishedMatches.length === 0) { /* skip */ }
-    else {
-      const matchIds = (allFinishedMatches as any[]).map((m: any) => m.id)
+    if (allFinishedMatches?.length) {
+      const matchIds = allFinishedMatches.map((m: any) => m.id)
 
-      const { data: allPredictions } = await supabase
+      const { data: userPredictions } = await supabase
         .from('predictions')
-        .select('user_id, match_id, predicted_winner, predicted_home_score, predicted_away_score')
+        .select('match_id, predicted_winner, predicted_home_score, predicted_away_score')
+        .eq('user_id', userId)
         .in('match_id', matchIds)
 
-      // Build lookup: user_id → { match_id → prediction }
-      const predByUser = new Map<string, Map<number, any>>()
-      for (const p of (allPredictions ?? []) as any[]) {
-        if (!predByUser.has(p.user_id)) predByUser.set(p.user_id, new Map())
-        predByUser.get(p.user_id)!.set(p.match_id, p)
+      const predMap = new Map<number, any>()
+      for (const p of (userPredictions ?? []) as any[]) {
+        predMap.set(p.match_id, p)
       }
 
-      const matchMap = new Map((allFinishedMatches as any[]).map((m: any) => [m.id, m]))
-
-      for (const uid of allUserIds) {
-        const userPreds = predByUser.get(uid) ?? new Map()
-        const form: FormResult[] = []
-        for (const m of allFinishedMatches as any[]) {
-          const p = userPreds.get(m.id)
-          if (!p) {
-            form.push(null)
-            continue
-          }
-          const correctWinner =
-            (m.home_score > m.away_score && p.predicted_winner === 'home') ||
-            (m.home_score < m.away_score && p.predicted_winner === 'away') ||
-            (m.home_score === m.away_score && p.predicted_winner === 'draw')
-          if (!correctWinner) { form.push('incorrect'); continue }
-          if (p.predicted_home_score === m.home_score && p.predicted_away_score === m.away_score) {
-            form.push('exact')
-          } else {
-            form.push('correct')
-          }
+      const form: FormResult[] = []
+      for (const m of allFinishedMatches as any[]) {
+        const p = predMap.get(m.id)
+        if (!p) { form.push(null); continue }
+        const correctWinner =
+          (m.home_score > m.away_score && p.predicted_winner === 'home') ||
+          (m.home_score < m.away_score && p.predicted_winner === 'away') ||
+          (m.home_score === m.away_score && p.predicted_winner === 'draw')
+        if (!correctWinner) { form.push('incorrect'); continue }
+        if (p.predicted_home_score === m.home_score && p.predicted_away_score === m.away_score) {
+          form.push('exact')
+        } else {
+          form.push('correct')
         }
-        recentFormMap[uid] = form
       }
+      recentFormMap[userId] = form
     }
   }
 
