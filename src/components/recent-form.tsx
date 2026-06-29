@@ -23,6 +23,13 @@ const FORM_BORDER: Record<FormResult, string> = {
   pending: '',
 }
 
+const FORM_SIZE: Record<FormResult, string> = {
+  exact: 'w-4 h-4',
+  correct: 'w-3 h-3',
+  incorrect: 'w-3 h-3',
+  pending: 'w-3 h-3',
+}
+
 const FORM_SHAPE: Record<FormResult, string> = {
   exact: '[clip-path:polygon(50%_0%,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]',
   correct: 'rounded-sm',
@@ -39,7 +46,7 @@ export default function RecentForm({ results }: { results: FormResult[] }) {
       {results.map((r, i) => (
         <div
           key={i}
-          className={`w-3 h-3 ${FORM_COLORS[r]} ${FORM_BORDER[r]} ${FORM_SHAPE[r]}`}
+          className={`${FORM_SIZE[r]} ${FORM_COLORS[r]} ${FORM_BORDER[r]} ${FORM_SHAPE[r]}`}
           title={FORM_TOOLTIPS[r]}
         />
       ))}
