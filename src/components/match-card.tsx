@@ -143,7 +143,7 @@ export default function MatchCard({
   const isFinished = match.status === 'finished'
   const isLive = match.status === 'live'
   const matchDate = new Date(match.kickoff_time)
-  const round = roundDisplayName(match.round, match.kickoff_time)
+  const round = roundDisplayName(match.round)
 
   const formatBD = (d: Date) =>
     d.toLocaleString('en-BD', {

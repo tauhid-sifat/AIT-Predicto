@@ -51,13 +51,14 @@ export default async function HomePage() {
   const finished = (matches ?? []).filter((m) => m.status === 'finished')
 
   // Separate knockout from group stage in upcoming
-  const knockoutUpcoming = upcoming.filter((m) => isKnockoutByRound(m.round, m.kickoff_time))
-  const groupUpcoming = upcoming.filter((m) => !isKnockoutByRound(m.round, m.kickoff_time))
+  const knockoutUpcoming = upcoming.filter((m) => isKnockoutByRound(m.round))
+  const groupUpcoming = upcoming.filter((m) => !isKnockoutByRound(m.round))
 
   // Group knockout by round
   const roundGroups = new Map<string, typeof knockoutUpcoming>()
   for (const m of knockoutUpcoming) {
-    const key = roundKey(m.round, m.kickoff_time) ?? 'round-of-32'
+    const key = roundKey(m.round)
+    if (!key) continue
     if (!roundGroups.has(key)) roundGroups.set(key, [])
     roundGroups.get(key)!.push(m)
   }
@@ -147,10 +148,10 @@ export default async function HomePage() {
             <div>
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <span>{ROUND_ICONS[roundKey]}</span>
-                {roundDisplayName(roundMatches[0]?.round, roundMatches[0]?.kickoff_time ?? '')}
+                {roundDisplayName(roundMatches[0]?.round)}
               </h2>
               <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">
-                {roundDisplayName(roundMatches[0]?.round, roundMatches[0]?.kickoff_time ?? '')}
+                {roundDisplayName(roundMatches[0]?.round)}
               </p>
             </div>
           </div>
