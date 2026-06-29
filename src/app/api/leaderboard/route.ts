@@ -73,24 +73,29 @@ export async function GET(request: NextRequest) {
 
     const { data: lastPredictions } = await supabase
       .from('predictions')
-      .select('points, predicted_home_score, predicted_away_score, predicted_winner, match_id, matches!inner(id, kickoff_time, home_score, away_score, status)')
+      .select('points, predicted_home_score, predicted_away_score, predicted_winner, match_id')
       .eq('user_id', userId)
       .not('points', 'is', null)
-      .order('kickoff_time', { ascending: false, foreignTable: 'matches' })
-      .limit(5)
+      .limit(50)
 
-    if (lastPredictions) {
+    if (lastPredictions && lastPredictions.length > 0) {
+      const matchIds = (lastPredictions as any[]).map((p: any) => p.match_id)
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, home_score, away_score, status, kickoff_time')
+        .in('id', matchIds)
+
+      const matchMap = new Map((matches ?? []).map((m: any) => [m.id, m]))
       const actualWinner = (h: number, a: number) => h > a ? 'home' : h < a ? 'away' : 'draw'
 
-      for (const p of lastPredictions as any[]) {
-        const m = p.matches
-        if (m.status !== 'finished' || m.home_score === null || m.away_score === null) {
-          recentForm.push('pending')
-        } else if (p.predicted_winner === actualWinner(m.home_score, m.away_score)) {
-          recentForm.push('correct')
-        } else {
-          recentForm.push('incorrect')
-        }
+      const scored = (lastPredictions as any[])
+        .map((p: any) => ({ ...p, match: matchMap.get(p.match_id) }))
+        .filter((p: any) => p.match && p.match.status === 'finished' && p.match.home_score !== null && p.match.away_score !== null)
+        .sort((a: any, b: any) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime())
+        .slice(0, 5)
+
+      for (const p of scored) {
+        recentForm.push(p.predicted_winner === actualWinner(p.match.home_score, p.match.away_score) ? 'correct' : 'incorrect')
       }
     }
   }
