@@ -380,6 +380,41 @@ AS $$
 $$;
 
 
+-- Returns recent form (last 5 finished scored predictions) for every user.
+CREATE OR REPLACE FUNCTION get_recent_form_all()
+RETURNS TABLE (
+  user_id      UUID,
+  recent_form  TEXT[]
+)
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH ranked AS (
+    SELECT
+      p.user_id,
+      CASE
+        WHEN m.home_score > m.away_score AND p.predicted_winner = 'home' THEN 'correct'
+        WHEN m.home_score < m.away_score AND p.predicted_winner = 'away' THEN 'correct'
+        WHEN m.home_score = m.away_score AND p.predicted_winner = 'draw' THEN 'correct'
+        ELSE 'incorrect'
+      END AS result,
+      ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY m.kickoff_time DESC) AS rn
+    FROM predictions p
+    JOIN matches m ON m.id = p.match_id
+    WHERE p.points IS NOT NULL
+      AND m.status = 'finished'
+      AND m.home_score IS NOT NULL
+      AND m.away_score IS NOT NULL
+  )
+  SELECT r.user_id, ARRAY_AGG(r.result ORDER BY r.rn) AS recent_form
+  FROM ranked r
+  WHERE r.rn <= 5
+  GROUP BY r.user_id
+$$;
+
+
 -- ---------------------------------------------------------------------------
 -- PRODUCTION HARDENING
 -- ---------------------------------------------------------------------------

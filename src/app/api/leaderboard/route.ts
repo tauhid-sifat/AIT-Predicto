@@ -64,38 +64,60 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Fetch stats for the requesting user (for the personal stats panel)
   let stats = null
-  let recentForm: ('correct' | 'incorrect' | 'pending')[] = []
   if (userId) {
     const supabase = createAdminClient()
     const { data: userStats } = await supabase.rpc('get_user_stats', { p_user_id: userId })
     stats = userStats?.[0] ?? null
+  }
 
-    const { data: lastPredictions } = await supabase
+  // Fetch recent form for ALL leaderboard users in two bulk queries
+  type FormResult = 'correct' | 'incorrect'
+  const recentFormMap: Record<string, FormResult[]> = {}
+
+  if (data.length > 0) {
+    const supabase = createAdminClient()
+    const allUserIds = data.map((e: any) => e.user_id)
+
+    // 1. Get all scored predictions for leaderboard users (limit per user handled in JS below)
+    const { data: allPredictions } = await supabase
       .from('predictions')
-      .select('points, predicted_home_score, predicted_away_score, predicted_winner, match_id')
-      .eq('user_id', userId)
+      .select('user_id, predicted_winner, match_id, points')
+      .in('user_id', allUserIds)
       .not('points', 'is', null)
-      .limit(50)
 
-    if (lastPredictions && lastPredictions.length > 0) {
-      const matchIds = (lastPredictions as any[]).map((p: any) => p.match_id)
+    if (allPredictions && allPredictions.length > 0) {
+      const matchIds = [...new Set((allPredictions as any[]).map((p: any) => p.match_id))]
+
+      // 2. Get the relevant finished matches in one query
       const { data: matches } = await supabase
         .from('matches')
         .select('id, home_score, away_score, status, kickoff_time')
         .in('id', matchIds)
+        .eq('status', 'finished')
 
       const matchMap = new Map((matches ?? []).map((m: any) => [m.id, m]))
       const actualWinner = (h: number, a: number) => h > a ? 'home' : h < a ? 'away' : 'draw'
 
-      const scored = (lastPredictions as any[])
-        .map((p: any) => ({ ...p, match: matchMap.get(p.match_id) }))
-        .filter((p: any) => p.match && p.match.status === 'finished' && p.match.home_score !== null && p.match.away_score !== null)
-        .sort((a: any, b: any) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime())
-        .slice(0, 5)
+      // Group predictions by user, resolve form, keep the 5 most recent finished matches
+      const byUser = new Map<string, any[]>()
+      for (const p of allPredictions as any[]) {
+        const match = matchMap.get(p.match_id)
+        if (!match) continue
+        if (!byUser.has(p.user_id)) byUser.set(p.user_id, [])
+        byUser.get(p.user_id)!.push({ ...p, match })
+      }
 
-      for (const p of scored) {
-        recentForm.push(p.predicted_winner === actualWinner(p.match.home_score, p.match.away_score) ? 'correct' : 'incorrect')
+      for (const [uid, preds] of byUser) {
+        const sorted = preds
+          .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime())
+          .slice(0, 5)
+        recentFormMap[uid] = sorted.map((p) =>
+          p.predicted_winner === actualWinner(p.match.home_score, p.match.away_score)
+            ? 'correct'
+            : 'incorrect'
+        )
       }
     }
   }
@@ -143,5 +165,5 @@ export async function GET(request: NextRequest) {
     }
   })()
 
-  return NextResponse.json({ leaderboard: data, rankChanges, stats, recentForm, mvp })
+  return NextResponse.json({ leaderboard: data, rankChanges, stats, recentFormMap, mvp })
 }

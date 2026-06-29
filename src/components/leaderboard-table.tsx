@@ -56,7 +56,7 @@ const slideIn = (i: number) => ({
 export default function LeaderboardTable({ userId }: { userId?: string }) {
   const [entries, setEntries] = useState<Entry[]>([])
   const [rankChanges, setRankChanges] = useState<RankChange>({})
-  const [recentForm, setRecentForm] = useState<FormResult[]>([])
+  const [recentFormMap, setRecentFormMap] = useState<Record<string, FormResult[]>>({})
   const [mvp, setMvp] = useState<MvpData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -67,7 +67,7 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
       .then((data) => {
         setEntries(data.leaderboard ?? [])
         setRankChanges(data.rankChanges ?? {})
-        setRecentForm(data.recentForm ?? [])
+        setRecentFormMap(data.recentFormMap ?? {})
         setMvp(data.mvp ?? null)
       })
       .finally(() => setLoading(false))
@@ -129,6 +129,7 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
           const badges = getBadges(entry)
           const medal = getMedalStyle(entry.total_points, uniquePoints)
           const change = rankChanges[entry.user_id]
+          const userForm = recentFormMap[entry.user_id] ?? []
 
           return (
             <div
@@ -226,9 +227,9 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
                       ))}
                     </div>
                   )}
-                  {isMe && recentForm.length > 0 && (
+                  {userForm.length > 0 && (
                     <div className="mt-1.5">
-                      <RecentForm results={recentForm} />
+                      <RecentForm results={userForm} />
                     </div>
                   )}
                 </div>
