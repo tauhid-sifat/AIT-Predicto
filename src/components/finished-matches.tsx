@@ -27,7 +27,7 @@ export default function FinishedMatches({
   if (matches.length === 0) return null
 
   const latest = matches.slice(-5).reverse()
-  const displayed = showAll ? matches.slice(-10).reverse() : latest
+  const displayed = showAll ? [...matches].reverse() : latest
 
   return (
     <section>
