@@ -37,6 +37,7 @@ CREATE TABLE predictions (
   predicted_winner      TEXT NOT NULL CHECK (predicted_winner IN ('home', 'away', 'draw')),
   points                INT DEFAULT NULL CHECK (points IS NULL OR points >= 0),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ DEFAULT NOW(),
 
   UNIQUE (user_id, match_id),
 
@@ -135,6 +136,23 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION handle_new_user();
+
+
+-- Auto-update predictions.updated_at on row update.
+CREATE OR REPLACE FUNCTION update_predictions_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS set_predictions_updated_at ON predictions;
+CREATE TRIGGER set_predictions_updated_at
+  BEFORE UPDATE ON predictions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_predictions_updated_at();
 
 
 -- ---------------------------------------------------------------------------

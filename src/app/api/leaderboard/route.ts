@@ -73,29 +73,20 @@ export async function GET(request: NextRequest) {
 
     const { data: lastPredictions } = await supabase
       .from('predictions')
-      .select('points, predicted_home_score, predicted_away_score, predicted_winner, match_id')
+      .select('points, predicted_home_score, predicted_away_score, predicted_winner, match_id, matches!inner(id, kickoff_time, home_score, away_score, status)')
       .eq('user_id', userId)
       .not('points', 'is', null)
-      .order('created_at', { ascending: false })
+      .order('kickoff_time', { ascending: false, foreignTable: 'matches' })
       .limit(5)
 
     if (lastPredictions) {
-      const matchIds = lastPredictions.map((p: any) => p.match_id)
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('id, home_score, away_score, status')
-        .in('id', matchIds)
-
-      const matchMap = new Map((matches ?? []).map((m: any) => [m.id, m]))
       const actualWinner = (h: number, a: number) => h > a ? 'home' : h < a ? 'away' : 'draw'
 
-      for (const p of lastPredictions) {
-        const m = matchMap.get(p.match_id)
-        if (!m || m.status !== 'finished' || m.home_score === null || m.away_score === null) {
+      for (const p of lastPredictions as any[]) {
+        const m = p.matches
+        if (m.status !== 'finished' || m.home_score === null || m.away_score === null) {
           recentForm.push('pending')
-        } else if (
-          p.predicted_winner === actualWinner(m.home_score, m.away_score)
-        ) {
+        } else if (p.predicted_winner === actualWinner(m.home_score, m.away_score)) {
           recentForm.push('correct')
         } else {
           recentForm.push('incorrect')

@@ -137,6 +137,14 @@ async function updateLeaderboardSnapshot() {
   const supabase = createAdminClient()
   const { data } = await supabase.rpc('get_leaderboard')
   if (data) {
+    data.sort((a: any, b: any) => b.total_points - a.total_points)
+    let rank = 0
+    let prevPoints: number | null = null
+    for (const [i, entry] of data.entries()) {
+      if (entry.total_points !== prevPoints) rank = i + 1
+      entry.rank = rank
+      prevPoints = entry.total_points
+    }
     await setState('leaderboard_snapshot', JSON.stringify(data))
   }
 }
