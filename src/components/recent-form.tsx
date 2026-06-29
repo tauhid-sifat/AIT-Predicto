@@ -17,7 +17,7 @@ export default function RecentForm({ results }: { results: (FormResult)[] }) {
       <div className="flex items-center gap-px">
         {results.map((r, i) => {
           if (r === null) {
-            return <div key={i} className="w-2 h-2 bg-gray-800/30 rounded-sm" title="No prediction" />
+            return <div key={i} className="w-2 h-2 bg-gray-700/20 border border-gray-700/40 rounded-sm" title="No prediction" />
           }
           if (r === 'exact') {
             return (
