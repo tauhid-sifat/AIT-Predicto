@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { LeaderboardSkeleton } from './skeleton'
 import PodiumSection from './podium-section'
 import MatchdayMvp from './matchday-mvp'
-import RecentForm from './recent-form'
+import RecentForm, { type FormResult } from './recent-form'
 
 type Entry = {
   user_id: string
@@ -20,7 +20,6 @@ type Entry = {
 }
 
 type RankChange = Record<string, number>
-type FormResult = 'exact' | 'correct' | 'incorrect' | 'pending'
 type MvpData = {
   user_id: string
   username: string

@@ -1,6 +1,6 @@
 'use client'
 
-type FormResult = 'exact' | 'correct' | 'incorrect' | null
+export type FormResult = 'exact' | 'correct' | 'incorrect' | null
 
 const TOOLTIPS: Record<string, string> = {
   exact: 'Exact score + winner correct',
