@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Fetch recent form for ALL leaderboard users in two bulk queries
-  type FormResult = 'correct' | 'incorrect'
+  type FormResult = 'exact' | 'correct' | 'incorrect'
   const recentFormMap: Record<string, FormResult[]> = {}
 
   if (data.length > 0) {
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     // 1. Get all scored predictions for leaderboard users (limit per user handled in JS below)
     const { data: allPredictions } = await supabase
       .from('predictions')
-      .select('user_id, predicted_winner, match_id, points')
+      .select('user_id, predicted_winner, predicted_home_score, predicted_away_score, match_id')
       .in('user_id', allUserIds)
       .not('points', 'is', null)
 
@@ -98,26 +98,32 @@ export async function GET(request: NextRequest) {
         .eq('status', 'finished')
 
       const matchMap = new Map((matches ?? []).map((m: any) => [m.id, m]))
-      const actualWinner = (h: number, a: number) => h > a ? 'home' : h < a ? 'away' : 'draw'
 
       // Group predictions by user, resolve form, keep the 5 most recent finished matches
       const byUser = new Map<string, any[]>()
       for (const p of allPredictions as any[]) {
-        const match = matchMap.get(p.match_id)
-        if (!match) continue
+        const m = matchMap.get(p.match_id)
+        if (!m) continue
         if (!byUser.has(p.user_id)) byUser.set(p.user_id, [])
-        byUser.get(p.user_id)!.push({ ...p, match })
+        byUser.get(p.user_id)!.push({ ...p, match: m })
       }
 
       for (const [uid, preds] of byUser) {
         const sorted = preds
           .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime())
           .slice(0, 5)
-        recentFormMap[uid] = sorted.map((p) =>
-          p.predicted_winner === actualWinner(p.match.home_score, p.match.away_score)
-            ? 'correct'
-            : 'incorrect'
-        )
+        recentFormMap[uid] = sorted.map((p) => {
+          const { match } = p
+          const correctWinner =
+            (match.home_score > match.away_score && p.predicted_winner === 'home') ||
+            (match.home_score < match.away_score && p.predicted_winner === 'away') ||
+            (match.home_score === match.away_score && p.predicted_winner === 'draw')
+          if (!correctWinner) return 'incorrect'
+          const exactScore =
+            p.predicted_home_score === match.home_score &&
+            p.predicted_away_score === match.away_score
+          return exactScore ? 'exact' : 'correct'
+        })
       }
     }
   }

@@ -1,17 +1,26 @@
 'use client'
 
-type FormResult = 'correct' | 'incorrect' | 'pending'
+type FormResult = 'exact' | 'correct' | 'incorrect' | 'pending'
 
 const FORM_COLORS: Record<FormResult, string> = {
+  exact: 'bg-yellow-400',
   correct: 'bg-green-500',
   incorrect: 'bg-red-400',
   pending: 'bg-gray-200',
 }
 
 const FORM_TOOLTIPS: Record<FormResult, string> = {
+  exact: 'Exact score + winner correct',
   correct: 'Correct prediction',
   incorrect: 'Incorrect prediction',
   pending: 'Not yet scored',
+}
+
+const FORM_BORDER: Record<FormResult, string> = {
+  exact: 'ring-1 ring-yellow-500/50',
+  correct: '',
+  incorrect: '',
+  pending: '',
 }
 
 export default function RecentForm({ results }: { results: FormResult[] }) {
@@ -23,7 +32,7 @@ export default function RecentForm({ results }: { results: FormResult[] }) {
       {results.map((r, i) => (
         <div
           key={i}
-          className={`w-3 h-3 rounded-sm ${FORM_COLORS[r]}`}
+          className={`w-3 h-3 rounded-sm ${FORM_COLORS[r]} ${FORM_BORDER[r]}`}
           title={FORM_TOOLTIPS[r]}
         />
       ))}

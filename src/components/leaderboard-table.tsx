@@ -20,7 +20,7 @@ type Entry = {
 }
 
 type RankChange = Record<string, number>
-type FormResult = 'correct' | 'incorrect' | 'pending'
+type FormResult = 'exact' | 'correct' | 'incorrect' | 'pending'
 type MvpData = {
   user_id: string
   username: string
