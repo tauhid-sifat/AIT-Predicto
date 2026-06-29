@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       for (const [uid, preds] of byUser) {
         const sorted = preds
           .sort((a, b) => new Date(b.match.kickoff_time).getTime() - new Date(a.match.kickoff_time).getTime())
-          .slice(0, 5)
+          .slice(0, 15)
         recentFormMap[uid] = sorted.map((p) => {
           const { match } = p
           const correctWinner =
