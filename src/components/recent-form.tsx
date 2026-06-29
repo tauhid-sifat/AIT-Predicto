@@ -23,6 +23,13 @@ const FORM_BORDER: Record<FormResult, string> = {
   pending: '',
 }
 
+const FORM_SHAPE: Record<FormResult, string> = {
+  exact: '[clip-path:polygon(50%_0%,61%_35%,98%_35%,68%_57%,79%_91%,50%_70%,21%_91%,32%_57%,2%_35%,39%_35%)]',
+  correct: 'rounded-sm',
+  incorrect: 'rounded-sm',
+  pending: 'rounded-sm',
+}
+
 export default function RecentForm({ results }: { results: FormResult[] }) {
   if (results.length === 0) return null
 
@@ -32,7 +39,7 @@ export default function RecentForm({ results }: { results: FormResult[] }) {
       {results.map((r, i) => (
         <div
           key={i}
-          className={`w-3 h-3 rounded-sm ${FORM_COLORS[r]} ${FORM_BORDER[r]}`}
+          className={`w-3 h-3 ${FORM_COLORS[r]} ${FORM_BORDER[r]} ${FORM_SHAPE[r]}`}
           title={FORM_TOOLTIPS[r]}
         />
       ))}
