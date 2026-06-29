@@ -61,10 +61,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, synced: 0, finished: 0, source, details: [] })
     }
 
+    // Remap records to preserve existing match IDs (ESPN external_id changes between syncs)
+    const allHomeTeams = [...new Set(records.map((r: any) => r.home_team))]
+    const allAwayTeams = [...new Set(records.map((r: any) => r.away_team))]
+    const allTeams = [...new Set([...allHomeTeams, ...allAwayTeams])]
+
+    const { data: existingMatches } = await supabase
+      .from('matches')
+      .select('id, home_team, away_team, kickoff_time')
+      .in('home_team', allTeams)
+
+    const teamDateMap = new Map<string, number>()
+    for (const m of existingMatches ?? []) {
+      const key = `${m.home_team}|${m.away_team}|${new Date(m.kickoff_time).toISOString().slice(0, 10)}`
+      teamDateMap.set(key, m.id)
+      // Also store reversed teams (home/away may swap between syncs)
+      const revKey = `${m.away_team}|${m.home_team}|${new Date(m.kickoff_time).toISOString().slice(0, 10)}`
+      if (!teamDateMap.has(revKey)) teamDateMap.set(revKey, m.id)
+    }
+
+    const remapped = records.map((r: any) => {
+      const dateKey = new Date(r.kickoff_time).toISOString().slice(0, 10)
+      const existingId = teamDateMap.get(`${r.home_team}|${r.away_team}|${dateKey}`)
+      if (existingId && existingId !== r.id) {
+        console.log(`[sync] Remapping ${r.home_team} vs ${r.away_team}: ESPN id ${r.id} → ${existingId}`)
+        return { ...r, id: existingId }
+      }
+      return r
+    })
+
     // Upsert in batches to avoid request size limits
     const BATCH = 50
-    for (let i = 0; i < records.length; i += BATCH) {
-      const batch = records.slice(i, i + BATCH)
+    for (let i = 0; i < remapped.length; i += BATCH) {
+      const batch = remapped.slice(i, i + BATCH)
       const batchIds = batch.map((r: any) => r.id)
 
       // Check existing statuses to avoid reverting finished matches
