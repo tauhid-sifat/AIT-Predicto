@@ -3,7 +3,7 @@
 type FormResult = 'exact' | 'correct' | 'incorrect' | 'pending'
 
 const FORM_COLORS: Record<FormResult, string> = {
-  exact: 'bg-[#D4AF37]',
+  exact: 'bg-yellow-400',
   correct: 'bg-green-500',
   incorrect: 'bg-red-400',
   pending: 'bg-gray-200',
@@ -17,7 +17,7 @@ const FORM_TOOLTIPS: Record<FormResult, string> = {
 }
 
 const FORM_BORDER: Record<FormResult, string> = {
-  exact: 'ring-1 ring-[#D4AF37]/50',
+  exact: 'ring-1 ring-yellow-400/50',
   correct: '',
   incorrect: '',
   pending: '',
