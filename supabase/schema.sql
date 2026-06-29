@@ -257,7 +257,7 @@ BEGIN
     WHERE p.user_id = get_user_stats.p_user_id
       AND m.status = 'finished'
       AND p.points IS NOT NULL
-    ORDER BY m.kickoff_time ASC
+    ORDER BY m.kickoff_time ASC, m.id ASC
   LOOP
     total_finished := total_finished + 1;
     IF rec.points > 0 THEN
@@ -282,7 +282,7 @@ BEGIN
     WHERE p.user_id = get_user_stats.p_user_id
       AND m.status = 'finished'
       AND p.points IS NOT NULL
-    ORDER BY m.kickoff_time DESC
+    ORDER BY m.kickoff_time DESC, m.id DESC
   LOOP
     IF rec.points > 0 THEN
       curr_streak := curr_streak + 1;
