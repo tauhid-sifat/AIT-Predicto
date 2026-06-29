@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       .not('home_score', 'is', null)
       .not('away_score', 'is', null)
       .order('kickoff_time', { ascending: false })
-      .limit(200)
+      .limit(110)
 
     if (!allFinishedMatches || allFinishedMatches.length === 0) { /* skip */ }
     else {
