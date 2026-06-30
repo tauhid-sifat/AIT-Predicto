@@ -20,6 +20,7 @@ CREATE TABLE matches (
   source        TEXT NOT NULL DEFAULT 'api-football'
                 CHECK (source IN ('espn', 'api-football', 'manual')),
   round         TEXT,
+  penalty_winner TEXT CHECK (penalty_winner IN ('home', 'away')),
   created_at    TIMESTAMPTZ DEFAULT NOW()
 );
 

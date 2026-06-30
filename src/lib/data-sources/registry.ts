@@ -26,6 +26,7 @@ export function toDbRecord(m: NormalizedMatch) {
     away_score: m.score_b,
     source: m.source,
     round: m.round ?? null,
+    penalty_winner: m.penalty_winner ?? null,
   }
 }
 

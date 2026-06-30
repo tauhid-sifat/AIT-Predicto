@@ -19,6 +19,7 @@ type EspnEvent = {
     competitors: Array<{
       team: { name: string }
       score?: string
+      winner?: boolean
     }>
     altGameNote?: string
   }>
@@ -39,16 +40,26 @@ function parseEvent(ev: EspnEvent, source: 'espn'): NormalizedMatch | null {
 
   const roundSlug = ev.season?.slug ?? comp.altGameNote ?? null
 
+  const scoreA = teamA.score != null ? parseInt(String(teamA.score), 10) : null
+  const scoreB = teamB.score != null ? parseInt(String(teamB.score), 10) : null
+
+  let penaltyWinner: 'home' | 'away' | null = null
+  if (scoreA !== null && scoreB !== null && scoreA === scoreB) {
+    if (teamA.winner) penaltyWinner = 'home'
+    else if (teamB.winner) penaltyWinner = 'away'
+  }
+
   return {
     external_id: parseInt(ev.id, 10),
     team_a: teamA.team.name,
     team_b: teamB.team.name,
     kickoff_time: ev.date,
     status: mapStatus(ev.status.type),
-    score_a: teamA.score != null ? parseInt(String(teamA.score), 10) : null,
-    score_b: teamB.score != null ? parseInt(String(teamB.score), 10) : null,
+    score_a: scoreA,
+    score_b: scoreB,
     source,
     round: roundSlug,
+    penalty_winner: penaltyWinner,
   }
 }
 

@@ -14,6 +14,7 @@ type Match = {
   away_score: number | null
   status: string
   round?: string | null
+  penalty_winner?: string | null
 }
 
 type Prediction = {
@@ -86,6 +87,10 @@ function PredictionSummary({
       ? match.away_team
       : 'Draw'
 
+  const actualWinnerLabel = match.penalty_winner
+    ? match.penalty_winner === 'home' ? match.home_team : match.away_team
+    : null
+
   if (match.status !== 'finished') {
     return (
       <div className="mt-2 pt-2 border-t border-gray-100">
@@ -116,6 +121,11 @@ function PredictionSummary({
           {hasScores && <> ({prediction.predicted_home_score}–{prediction.predicted_away_score})</>}
         </span>
       </div>
+      {actualWinnerLabel && !isCorrect && (
+        <div className="text-[10px] text-gray-400 text-center mt-1">
+          {actualWinnerLabel} won on penalties
+        </div>
+      )}
       <div className="flex items-center justify-between mt-1">
         <span className="text-xs text-gray-500">
           {!isScored ? 'Scoring...' : isCorrect ? 'Correct!' : 'Incorrect'}
@@ -194,10 +204,17 @@ export default function MatchCard({
 
         <div className="flex-shrink-0 text-center min-w-[72px]">
           {isFinished || (isLive && match.home_score !== null) ? (
-            <div className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums tracking-tight leading-none">
-              <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.home_score ?? '?'}</span>
-              <span className="mx-1.5 text-gray-300 font-bold text-lg align-middle">&ndash;</span>
-              <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.away_score ?? '?'}</span>
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums tracking-tight leading-none">
+                <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.home_score ?? '?'}</span>
+                <span className="mx-1.5 text-gray-300 font-bold text-lg align-middle">&ndash;</span>
+                <span className="bg-gray-50 px-3 py-1 rounded-lg">{match.away_score ?? '?'}</span>
+              </div>
+              {match.penalty_winner && (
+                <div className="text-[10px] font-semibold text-gray-500 mt-1 uppercase tracking-wide">
+                  {match.penalty_winner === 'home' ? match.home_team : match.away_team} won on penalties
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-base font-bold text-gray-300 uppercase tracking-widest">VS</div>

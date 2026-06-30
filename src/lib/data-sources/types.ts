@@ -12,6 +12,7 @@ export type NormalizedMatch = {
   score_b: number | null
   source: DataSource
   round?: string | null
+  penalty_winner?: 'home' | 'away' | null
 }
 
 export type SyncOptions = {

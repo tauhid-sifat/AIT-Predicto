@@ -12,6 +12,7 @@ type Match = {
   away_score: number | null
   status: string
   round?: string | null
+  penalty_winner?: string | null
 }
 
 export default function FinishedMatches({
