@@ -44,8 +44,16 @@ export function isKnockoutByRound(round: string | null | undefined): boolean {
   return key !== null && ROUND_ORDER_LIST.includes(key)
 }
 
+const PLACEHOLDER_PATTERNS = [
+  /^Round of (32|16) \d+ Winner$/,
+  /^Quarterfinal \d+ Winner$/,
+  /^Semifinal \d+ (Winner|Loser)$/,
+  /^Winner Match \d+$/,
+  /^Loser Match \d+$/,
+]
+
 export function cleanTeamName(name: string): string {
-  return name.startsWith('Round of 32') ? 'TBD' : name
+  return PLACEHOLDER_PATTERNS.some((p) => p.test(name)) ? 'TBD' : name
 }
 
 export const ROUND_ORDER = ROUND_ORDER_LIST
