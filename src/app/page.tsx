@@ -49,10 +49,14 @@ export default async function HomePage() {
     (m) => m.status === 'scheduled' && new Date(m.kickoff_time) > now
   )
   const finished = (matches ?? []).filter((m) => m.status === 'finished')
+  const stuck = (matches ?? []).filter(
+    (m) => m.status === 'scheduled' && new Date(m.kickoff_time) <= now
+  )
 
-  // Separate knockout from group stage in upcoming
+  // Separate knockout from group stage in upcoming + stuck
   const knockoutUpcoming = upcoming.filter((m) => isKnockoutByRound(m.round))
   const groupUpcoming = upcoming.filter((m) => !isKnockoutByRound(m.round))
+  const stuckScheduled = stuck.filter((m) => !isKnockoutByRound(m.round))
 
   // Group knockout by round
   const roundGroups = new Map<string, typeof knockoutUpcoming>()
@@ -201,7 +205,27 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Section C: Finished (collapsed by default) */}
+      {/* Section C: Stuck scheduled (past kickoff, no result yet) */}
+      {stuckScheduled.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-amber-600 flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 bg-amber-500 rounded-full" />
+            Waiting for Result
+          </h2>
+          <div className="grid gap-4">
+            {stuckScheduled.map((m) => (
+              <MatchCard
+                key={m.id}
+                match={m}
+                prediction={predictionsByMatch[m.id] ?? null}
+                userId={user?.id}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Section D: Finished (collapsed by default) */}
       <FinishedMatches
         matches={finished}
         predictionsMap={predictionsByMatch}

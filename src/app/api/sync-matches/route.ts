@@ -178,6 +178,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fix matches stuck as scheduled past their kickoff time
+    const stuckCutoff = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString()
+    const { data: stuckScheduled } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('status', 'scheduled')
+      .lt('kickoff_time', stuckCutoff)
+      .limit(50)
+
+    if (stuckScheduled?.length) {
+      const espnSource = createSource('espn')
+      for (const sm of stuckScheduled) {
+        const detail = await espnSource.getMatchDetail(sm.id)
+        if (detail) {
+          const dbRec = toDbRecord(detail)
+          const { error } = await supabase.from('matches').upsert(dbRec, { onConflict: 'id' })
+          if (error) {
+            logError('stuck_scheduled_refresh_failed', error, { matchId: sm.id })
+          } else {
+            records.push(dbRec)
+          }
+        }
+      }
+    }
+
     // Re-sync all finished matches from DB via event detail API to catch score corrections
     const { data: finishedFromDb } = await supabase
       .from('matches')
