@@ -25,6 +25,8 @@ type MvpData = {
   username: string
   points_gained: number
   correct_count: number
+  exact_count: number
+  matchday?: string
 }
 
 function getBadges(e: Entry): string[] {
@@ -116,7 +118,7 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
 
       {mvp && (
         <div className="mb-6">
-          <MatchdayMvp mvp={mvp} />
+          <MatchdayMvp mvp={mvp} matchday={mvp.matchday} />
         </div>
       )}
 

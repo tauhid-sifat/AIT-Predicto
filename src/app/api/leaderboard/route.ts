@@ -123,23 +123,92 @@ export async function GET(request: NextRequest) {
 
   const mvp = await (async () => {
     const supabase = createAdminClient()
-    const lastScoring = await getState('last_scoring_run_time')
-    if (!lastScoring) return null
 
-    const cutoff = new Date(new Date(lastScoring).getTime() - 60000).toISOString()
-    const { data: recentUpdated } = await supabase
+    // Find the most recent matchday with finished matches
+    const { data: matchdays } = await supabase
+      .from('matches')
+      .select('kickoff_time')
+      .eq('status', 'finished')
+      .not('home_score', 'is', null)
+      .not('away_score', 'is', null)
+      .order('kickoff_time', { ascending: false })
+      .limit(100)
+
+    if (!matchdays || matchdays.length === 0) return null
+
+    // Group by UTC date to find the latest matchday
+    const dayGroups = new Map<string, boolean>()
+    for (const m of matchdays as any[]) {
+      const day = m.kickoff_time.slice(0, 10)
+      dayGroups.set(day, true)
+    }
+    const sortedDays = [...dayGroups.keys()].sort().reverse()
+    const latestMatchday = sortedDays[0]
+    if (!latestMatchday) return null
+
+    // Get all matches on that matchday
+    const dayStart = `${latestMatchday}T00:00:00Z`
+    const dayEnd = `${latestMatchday}T23:59:59Z`
+
+    const { data: dayMatches } = await supabase
+      .from('matches')
+      .select('id, home_score, away_score')
+      .eq('status', 'finished')
+      .not('home_score', 'is', null)
+      .not('away_score', 'is', null)
+      .gte('kickoff_time', dayStart)
+      .lte('kickoff_time', dayEnd)
+
+    if (!dayMatches || dayMatches.length === 0) return null
+
+    const matchIds = (dayMatches as any[]).map((m) => m.id)
+
+    // Get all predictions for those matches
+    const { data: dayPredictions } = await supabase
       .from('predictions')
-      .select('user_id, points')
-      .gte('updated_at', cutoff)
+      .select('user_id, points, predicted_winner, predicted_home_score, predicted_away_score, match_id')
+      .in('match_id', matchIds)
       .not('points', 'is', null)
 
-    if (!recentUpdated || recentUpdated.length === 0) return null
+    if (!dayPredictions || dayPredictions.length === 0) return null
 
+    // Build match lookup
+    const matchMap = new Map<number, any>()
+    for (const m of dayMatches as any[]) matchMap.set(m.id, m)
+
+    // Aggregate per user
     const pointsByUser = new Map<string, number>()
-    const countByUser = new Map<string, number>()
-    for (const p of recentUpdated as any[]) {
-      pointsByUser.set(p.user_id, (pointsByUser.get(p.user_id) ?? 0) + p.points)
-      countByUser.set(p.user_id, (countByUser.get(p.user_id) ?? 0) + 1)
+    const correctByUser = new Map<string, number>()
+    const exactByUser = new Map<string, number>()
+
+    for (const p of dayPredictions as any[]) {
+      pointsByUser.set(p.user_id, (pointsByUser.get(p.user_id) ?? 0) + (p.points ?? 0))
+
+      const match = matchMap.get(p.match_id)
+      if (!match) continue
+
+      const actualWinner =
+        match.home_score > match.away_score ? 'home'
+          : match.home_score < match.away_score ? 'away' : 'draw'
+
+      const predictedWinner = p.predicted_winner ?? (
+        p.predicted_home_score != null && p.predicted_away_score != null
+          ? p.predicted_home_score > p.predicted_away_score ? 'home'
+            : p.predicted_home_score < p.predicted_away_score ? 'away' : 'draw'
+          : null
+      )
+
+      if (predictedWinner === actualWinner) {
+        correctByUser.set(p.user_id, (correctByUser.get(p.user_id) ?? 0) + 1)
+      }
+
+      if (
+        p.predicted_home_score !== null && p.predicted_away_score !== null &&
+        p.predicted_home_score === match.home_score &&
+        p.predicted_away_score === match.away_score
+      ) {
+        exactByUser.set(p.user_id, (exactByUser.get(p.user_id) ?? 0) + 1)
+      }
     }
 
     let bestUser: string | null = null
@@ -160,7 +229,9 @@ export async function GET(request: NextRequest) {
       user_id: bestUser,
       username: profile?.username ?? 'Unknown',
       points_gained: bestPoints,
-      correct_count: countByUser.get(bestUser) ?? 0,
+      correct_count: correctByUser.get(bestUser) ?? 0,
+      exact_count: exactByUser.get(bestUser) ?? 0,
+      matchday: latestMatchday,
     }
   })()
 
