@@ -211,26 +211,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let bestUser: string | null = null
     let bestPoints = 0
-    for (const [uid, pts] of pointsByUser) {
-      if (pts > bestPoints) { bestPoints = pts; bestUser = uid }
+    for (const pts of pointsByUser.values()) {
+      if (pts > bestPoints) bestPoints = pts
     }
 
-    if (!bestUser) return null
+    const tiedUserIds = [...pointsByUser.entries()]
+      .filter(([, pts]) => pts === bestPoints)
+      .map(([uid]) => uid)
 
-    const { data: profile } = await supabase
+    if (tiedUserIds.length === 0) return null
+
+    const { data: profiles } = await supabase
       .from('profiles')
-      .select('username')
-      .eq('id', bestUser)
-      .single()
+      .select('id, username')
+      .in('id', tiedUserIds)
+
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p.username ?? 'Unknown']))
+
+    const mvps = tiedUserIds.map((uid) => ({
+      user_id: uid,
+      username: profileMap.get(uid) ?? 'Unknown',
+      points_gained: bestPoints,
+      correct_count: correctByUser.get(uid) ?? 0,
+      exact_count: exactByUser.get(uid) ?? 0,
+    }))
 
     return {
-      user_id: bestUser,
-      username: profile?.username ?? 'Unknown',
-      points_gained: bestPoints,
-      correct_count: correctByUser.get(bestUser) ?? 0,
-      exact_count: exactByUser.get(bestUser) ?? 0,
+      mvps,
       matchday: latestMatchday,
     }
   })()

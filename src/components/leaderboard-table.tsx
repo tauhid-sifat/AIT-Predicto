@@ -20,12 +20,16 @@ type Entry = {
 }
 
 type RankChange = Record<string, number>
-type MvpData = {
+type MvpEntry = {
   user_id: string
   username: string
   points_gained: number
   correct_count: number
   exact_count: number
+}
+
+type MvpData = {
+  mvps: MvpEntry[]
   matchday?: string
 }
 
@@ -116,9 +120,9 @@ export default function LeaderboardTable({ userId }: { userId?: string }) {
         .rank-badge-bronze { background: linear-gradient(135deg, #FFB07C, #CD7F32); }
       `}</style>
 
-      {mvp && (
+      {mvp?.mvps && mvp.mvps.length > 0 && (
         <div className="mb-6">
-          <MatchdayMvp mvp={mvp} matchday={mvp.matchday} />
+          <MatchdayMvp mvps={mvp.mvps} matchday={mvp.matchday} />
         </div>
       )}
 
